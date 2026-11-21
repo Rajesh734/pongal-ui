@@ -54,8 +54,11 @@ if [ "$state" = healthy ]; then
   exit 0
 fi
 
-echo "Container did not become healthy (state: $state). Last log lines:"
-docker logs --tail 50 "$CONTAINER" 2>&1 || true
+echo "Container did not become healthy (state: $state)."
+# Job logs are public: print status only, never `docker logs` (its startup line lists private settings).
+docker inspect -f 'status={{.State.Status}} exit_code={{.State.ExitCode}} restarts={{.RestartCount}}' "$CONTAINER" 2>/dev/null || true
+docker inspect -f '{{if .State.Health}}{{range .State.Health.Log}}health_check exit={{.ExitCode}} {{.Output}}{{end}}{{end}}' "$CONTAINER" 2>/dev/null || true
+echo "Full logs on the NAS: docker logs $CONTAINER"
 IMAGE_TAG=$TAG $COMPOSE down
 if [ -n "$PREV" ]; then
   echo "Rolling back to $PREV"

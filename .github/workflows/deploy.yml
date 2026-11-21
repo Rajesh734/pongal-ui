@@ -74,9 +74,14 @@ jobs:
           NAS_KNOWN_HOSTS: ${{ secrets.NAS_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$NAS_SSH_KEY" > ~/.ssh/deploy_key
+          # Secrets pasted on Windows can carry CRLF line endings, which OpenSSH cannot parse.
+          printf '%s\n' "$NAS_SSH_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$NAS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            echo "::error::NAS_SSH_KEY is not a valid unencrypted OpenSSH private key (expected -----BEGIN OPENSSH PRIVATE KEY-----)"
+            exit 1
+          fi
+          printf '%s\n' "$NAS_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
           cat > ~/.ssh/config <<EOF
           Host nas
             HostName $NAS_HOST
@@ -84,6 +89,8 @@ jobs:
             Port ${NAS_PORT:-22}
             IdentityFile ~/.ssh/deploy_key
             IdentitiesOnly yes
+            BatchMode yes
+            PasswordAuthentication no
             StrictHostKeyChecking yes
             UserKnownHostsFile ~/.ssh/known_hosts
             ConnectTimeout 20

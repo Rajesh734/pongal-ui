@@ -6,6 +6,7 @@ See proposal.md for motivation. Constraints that shape the approach:
 
 - Runs on a Synology DS920+ (Celeron J4125, 4 GB RAM) in Docker, reached only through the existing Cloudflare Tunnel container. Only one NAS exists, and PostgreSQL is not ready yet, so production starts on PGlite with a persistent folder.
 - The NAS is reachable for administration only over Tailscale with SSH; another app already deploys to it from GitHub Actions this way, and this change follows that pattern.
+- The repository is public, so workflow logs are world-readable.
 - Real family data is collected from launch, so the PGlite stage is production in practice: it needs a mounted volume and backups.
 - Synology has no built-in secret vault; secrets must stay out of the repo and out of `docker inspect`.
 - The tech stack, folder layout and data rules come from `openspec/config.yaml`.
@@ -164,16 +165,19 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 
 ### D10. Container and Compose
 - Image: `node:20-alpine`, `npm ci --omit=dev`, runs as `node` (uid 1000), `HEALTHCHECK` calling `/healthz`. Built by CI for `linux/amd64` (the J4125 is x86-64) and published as `ghcr.io/rajesh734/pongal-ui/community-site`.
-- `compose.yaml`: service `community-site` using `image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}` (no `build:`), `container_name: community-site-${APP_ENV}`, **no published host ports**, attached to the external Docker network shared with the existing `cloudflared` container; volumes `./data:/data`; Compose `secrets:` from `./secrets/<name>` files; non-secret settings from `.env`. The same file serves both environments.
-- One folder per environment: `/volume1/platform/docker/{non-prod,prod}/community-site/` holding `compose.yaml`, `.env` (`APP_ENV`, non-secret settings), `secrets/`, `data/` and `.deployed-tag` (the image tag that is running).
-- Cloudflare Tunnel public hostnames point to `http://community-site-non-prod:3000` and `http://community-site-prod:3000`.
-- *Publish port 3000 on the NAS* - rejected: anyone on the LAN could bypass Cloudflare.
+- `compose.yaml`: project `name: community-site-${APP_ENV}` (both environment folders are called `community-site`, so without it they would share one Compose project), service `community-site` using `image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}` (no `build:`), `container_name: community-site-${APP_ENV}`, port 3000 **published on the NAS loopback only** (`127.0.0.1:${HOST_PORT}:3000`, `HOST_PORT` from `.env`), because the existing `cloudflared` container (`cloudflare-pranphoto`, also serving Synology Photos) runs in host network mode and reaches services through `localhost`; volumes `./data:/data`; Compose `secrets:` from `./secrets/<name>` files; non-secret settings from `.env`. The same file serves both environments.
+- One folder per environment: `/volume1/platform/docker/{non-prod,prod}/community-site/` owned by the deploy user, holding `compose.yaml`, `.env` (`APP_ENV`, `HOST_PORT`, non-secret settings), `secrets/` (owner 1000, mode 711 so the deploy user can resolve the paths for Compose but not list or read them; files mode 400), `data/` (owner 1000, mode 700) and `.deployed-tag` (the image tag that is running).
+- `HOST_PORT` is `3101` for non-prod and `3100` for production (3000 is used by another app on the NAS). Cloudflare Tunnel public hostnames point to `http://localhost:3101` and `http://localhost:3100`.
+- *Publish port 3000 on all NAS interfaces* - rejected: anyone on the LAN could bypass Cloudflare.
+- *Shared Docker network with `cloudflared`* - rejected: the existing tunnel container uses host networking and cannot join another network.
+- *Second `cloudflared` container for this app* - rejected: another tunnel and token to manage and more memory on a 4 GB NAS.
+- *Switch the Photos tunnel container to bridge networking* - rejected: risks breaking remote access to Synology Photos.
 - *Build the image on the NAS* - rejected: slow on the Celeron and needs the source tree on the NAS.
 
 ### D11. Build workflow: test, then publish the image to GHCR
-`.github/workflows/build.yml` (replaces `ci.yml`) runs on push and pull request to `main` and on manual dispatch.
+`.github/workflows/build.yml` (replaces `ci.yml`) runs on push to any branch, on pull request to `main` and on manual dispatch. Every pushed branch gets an image; only `main` is deployed automatically.
 - `test` job: `actions/setup-node@v4` with Node 20 and npm cache, `npm ci`, `npm test`. Tests use in-memory PGlite, so no database service is needed.
-- `build` job (needs `test`, `packages: write`): Buildx for `linux/amd64`, tags `sha-<short>`, branch name and `latest` on `main` (from `docker/metadata-action`), GHA layer cache. Pushes only when the event is not a pull request. Then pulls the pushed `sha-` tag and checks `id -u` prints `1000`.
+- `build` job (needs `test`, `packages: write`): checks `compose.yaml` with `docker compose config` and that every published port is bound to `127.0.0.1`, then Buildx for `linux/amd64`, tags `sha-<short>`, branch name and `latest` on `main` (from `docker/metadata-action`), GHA layer cache. The built image is loaded locally and must print `1000` for `id -u` before anything is pushed; it is pushed only when the event is not a pull request.
 - *Copy the sample's Postgres service, `npm run lint || true` and Codecov* - rejected: no Postgres in tests, a lint step that cannot fail adds nothing, and coverage upload is not needed yet.
 - *Sample `verify` job pulling `latest`* - rejected: `latest` may be a different build; verify the exact `sha-` tag.
 - *`lmigtech/internal-actions` setup-node* - rejected: not reachable from a personal repository.
@@ -184,16 +188,17 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 - `concurrency: deploy-<environment>` so two deploys never overlap on one environment.
 - Network: `tailscale/github-action@v3` with an OAuth client and ephemeral `tag:ci` node. The tailnet ACL lets `tag:ci` reach only the NAS on its SSH port.
 - SSH: dedicated NAS user in the `docker` group with a deploy-only key; host key pinned from the `NAS_KNOWN_HOSTS` secret with `StrictHostKeyChecking=yes`. The key file is deleted at the end of the job.
-- Steps on the NAS (one SSH script, `set -eu`):
+- Steps on the NAS (`scripts/nas-deploy.sh`, piped over SSH, `set -eu`):
   1. Copy `compose.yaml` from the repository into the environment folder.
   2. `docker pull` the new tag (the NAS is logged in to GHCR once with a read-only token).
   3. Read the previous tag from `.deployed-tag`, `docker compose down`, copy `data/pglite` to `data/pre-deploy/<previous-tag>/` (keep the 3 newest).
   4. `IMAGE_TAG=<new> docker compose up -d`, then wait up to 120 s for Docker health status `healthy`.
-  5. Healthy: write the new tag to `.deployed-tag`. Not healthy: print the last 50 log lines, start the previous tag again and fail the job.
-- Secrets: GitHub Environments hold only access secrets (`NAS_HOST`, `NAS_USER`, `NAS_PORT`, `NAS_SSH_KEY`, `NAS_KNOWN_HOSTS`, `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`). App secrets stay in files on the NAS (D3) and never pass through GitHub.
+  5. Healthy: write the new tag to `.deployed-tag`. Not healthy: print only the container state, exit code, restart count and the recent health-check results (Docker keeps the last 5; never `docker logs`), start the previous tag again and fail the job. Full logs are read on the NAS with `docker logs community-site-<env>`.
+- Secrets: GitHub Environments hold only access secrets (`NAS_HOST`, `NAS_USER`, `NAS_PORT`, `NAS_SSH_KEY`, `NAS_KNOWN_HOSTS`, `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_SECRET`), stored as environment **secrets** (never variables, which appear unmasked in public logs). Both environments accept deployments from `main` only. App secrets stay in files on the NAS (D3) and never pass through GitHub.
+- *Print container logs in the job log* - rejected: job logs are public and the startup line lists private settings (SMTP host and user, Access team domain and AUD).
 - *Sample's `sed` of DB passwords into the compose file* - rejected: puts secrets on disk in plain text and into `docker inspect`, against D3.
 - *`StrictHostKeyChecking=no`* - rejected: allows a man-in-the-middle to receive the deploy session.
-- *Health check with `curl localhost:3000`* - rejected: the container publishes no port; Docker's own health status is used instead.
+- *Health check with `curl localhost:3000`* - rejected: port 3000 belongs to another app on the NAS; Docker's own health status is used instead.
 - *Sample rollback from `docker-compose.yml.backup`* - rejected: that file is never created; the previous image tag is recorded instead.
 - *Tailscale auth key* - rejected: keys expire after at most 90 days and would silently break deploys; the OAuth client does not expire.
 - *Watchtower auto-pull on the NAS* - rejected: no health-gated rollback and no record of what is deployed.
@@ -208,6 +213,7 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 - [Rolling back the image does not undo a database migration] -> The deploy copies `data/pglite` before starting the new image; the runbook shows how to restore that copy together with the previous tag.
 - [CI runners join the tailnet] -> Ephemeral `tag:ci` nodes, ACL limited to the NAS SSH port, deploy user limited to Docker and its folders.
 - [Auto-deploy pushes every `main` commit to non-prod] -> Acceptable for non-prod; production deploys stay manual with a chosen tag.
+- [Any process on the NAS can reach the app through `127.0.0.1`] -> Only admins run software on the NAS; LAN and internet clients still cannot reach the port.
 
 
 ## Migration Plan
@@ -220,6 +226,6 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 
 ## Open Questions
 
-- Name of the existing Docker network used by the `cloudflared` container (read from Container Manager during deployment; only changes one line in `compose.yaml`).
+- Name of the existing Docker network used by the `cloudflared` container - resolved: `cloudflare-pranphoto` uses host networking, so the app is published on `127.0.0.1` instead (D10).
 - Compose command on the DSM version in use: `docker compose` (v2) or `/usr/local/bin/docker-compose` as in the existing app's deploy. The deploy script uses whichever the NAS has.
 - Public hostnames for `non-prod` and `production`.
