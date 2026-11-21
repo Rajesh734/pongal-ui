@@ -11,12 +11,14 @@
 - [x] 2.1 Write new `package.json` (`"type": "module"`, `engines.node >=20`, scripts `start`, `dev`, `test`, `db:generate`) and install runtime deps (fastify, @fastify/view, eta, @fastify/static, @fastify/formbody, @fastify/helmet, @fastify/rate-limit, @electric-sql/pglite, pg, drizzle-orm, zod, yaml) and dev deps (vitest, drizzle-kit); verify `npm ci` succeeds and run a Trivy dependency scan with no new high/critical findings
 - [x] 2.2 Create the folder layout from design D2 with placeholder `index` files; verify `node --check src/server.js` passes
 - [x] 2.3 Add `.env.example` with dummy values for every setting in design D3, `DB_DRIVER=pglite`, and Cloudflare's public Turnstile test keys (`1x00000000000000000000AA` / `1x0000000000000000000000000000000AA`); verify no real secret is present by searching the diff for "secret" values other than placeholders
+- [x] 2.4 Add `vitest.config.js` with `testTimeout` and `hookTimeout` of 30 s per design D11; verify `npm test` passes locally and in the Build workflow
 
 ## 3. Configuration and secrets
 
 - [x] 3.1 Implement `src/config.js` with `NAME`/`NAME_FILE` resolution (file wins, trimmed) and Zod validation for the settings in design D3
 - [x] 3.2 Add unit tests in `test/config.test.js` for scenarios "Secret read from file", "File value wins over plain variable", "Secret file missing", "Missing required secret", "Invalid port"; verify `npx vitest run test/config.test.js` passes
 - [x] 3.3 Log effective config with secrets masked as `[set]`/`[not set]`; add test for scenario "Startup log" asserting the secret value is absent from captured log output; verify it passes
+- [ ] 3.4 Treat a secret file that is empty after trimming as not set, per design D3; add tests for scenarios "Empty secret file for an optional setting" and "Empty secret file for a required setting"; in `docs/deploy-nas.md` section 2 show `: > secrets/smtp_pass` for environments without SMTP; verify `npm test` passes and the non-prod Deploy becomes healthy with an empty `smtp_pass`
 
 ## 4. Server core
 
@@ -60,8 +62,9 @@
 
 - [ ] 9.1 NAS prep per the runbook: create both environment folders, secret files, `.env` files and the deploy user; log in to GHCR; verify `ls -l secrets` shows owner `1000` and mode `-r--------` in each environment and `ssh <deploy-user>@<nas-tailnet-name> docker ps` works from a tailnet device
 - [ ] 9.2 Tailscale and GitHub prep per the runbook: `tag:ci` owner and ACL, OAuth client, Environments `non-prod`/`production` with secrets and a required reviewer on `production`; verify a manual Deploy of the first `sha-` tag to `non-prod` connects and passes the SSH step
-- [ ] 9.3 Merge to `main`; verify Build publishes `sha-<short>`, Deploy runs automatically to `non-prod`, the container `community-site-non-prod` is `healthy`, `.deployed-tag` holds the tag, and `docker inspect` shows no secret values in `Env`
-- [ ] 9.4 Add the Cloudflare Tunnel public hostnames for both environments (`http://localhost:3101` non-prod, `http://localhost:3100` production) on the existing `cloudflare-pranphoto` tunnel; verify `https://<hostname>/healthz` returns `{"status":"ok","db":"ok"}` and `https://<hostname>/weather` returns the 404 page on non-prod
-- [ ] 9.5 Rollback drill on non-prod: dispatch Deploy with a tag whose container cannot become healthy (e.g. one built with a deliberately failing `/healthz`, or a temporarily unreadable secret file); verify the job fails, the previous tag is running and healthy again, and `.deployed-tag` is unchanged
-- [ ] 9.6 Dispatch Deploy to `production` with the verified `sha-` tag; verify `https://<prod-hostname>/healthz` is ok, then restart the container and confirm the seeded event still exists and `data/pglite` is non-empty
-- [ ] 9.7 Verify the app is not reachable from the LAN: `curl http://<nas-ip>:3101/healthz` and `:3100` from another LAN device fail to connect, while `curl http://localhost:3101/healthz` on the NAS succeeds
+- [ ] 9.3 Update any environment folder created under the earlier Docker-network design to design D10: in its `.env` add `HOST_PORT` (`3101` non-prod, `3100` production) and remove `CLOUDFLARE_NETWORK`, and point its Tunnel route to `http://localhost:<HOST_PORT>`; verify `docker compose config` in the folder (with `IMAGE_TAG` set) succeeds before re-running Deploy
+- [ ] 9.4 Merge to `main`; verify Build publishes `sha-<short>`, Deploy runs automatically to `non-prod`, the container `community-site-non-prod` is `healthy`, `.deployed-tag` holds the tag, and `docker inspect` shows no secret values in `Env`
+- [ ] 9.5 Add the Cloudflare Tunnel public hostnames for both environments (`http://localhost:3101` non-prod, `http://localhost:3100` production) on the existing `cloudflare-pranphoto` tunnel; verify `https://<hostname>/healthz` returns `{"status":"ok","db":"ok"}` and `https://<hostname>/weather` returns the 404 page on non-prod
+- [ ] 9.6 Rollback drill on non-prod: dispatch Deploy with a tag whose container cannot become healthy (e.g. one built with a deliberately failing `/healthz`, or a temporarily unreadable secret file); verify the job fails, the previous tag is running and healthy again, and `.deployed-tag` is unchanged
+- [ ] 9.7 Dispatch Deploy to `production` with the verified `sha-` tag; verify `https://<prod-hostname>/healthz` is ok, then restart the container and confirm the seeded event still exists and `data/pglite` is non-empty
+- [ ] 9.8 Verify the app is not reachable from the LAN: `curl http://<nas-ip>:3101/healthz` and `:3100` from another LAN device fail to connect, while `curl http://localhost:3101/healthz` on the NAS succeeds

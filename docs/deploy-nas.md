@@ -55,6 +55,8 @@ read -rs TS && printf '%s' "$TS" > secrets/turnstile_secret && unset TS
 
 # SMTP password (app password from the mail provider)
 read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
+# No SMTP yet? Create the file empty instead; the app treats it as not set:
+# : > secrets/smtp_pass
 
 chown -R 1000:1000 secrets data
 chmod 700 data
@@ -80,6 +82,15 @@ SMTP_FROM="Pongal 2027 <no-reply@example.org>"
 CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com
 CF_ACCESS_AUD=<Access application AUD tag>
 ```
+
+### Upgrading a folder from the Docker-network setup
+
+Earlier versions joined the app to the cloudflared Docker network. If an environment folder was set up that way, the next deploy fails with `required variable HOST_PORT is missing a value`. Before deploying:
+
+1. In that folder's `.env`, add `HOST_PORT` (`3101` non-prod, `3100` prod) and delete the `CLOUDFLARE_NETWORK=` line.
+2. Check the file: `IMAGE_TAG=check docker compose config -q` in the folder prints nothing.
+3. Point the environment's Tunnel public hostname to `http://localhost:<HOST_PORT>` (see [Cloudflare Tunnel routes](#cloudflare-tunnel-routes)).
+4. Re-run the failed Deploy run in GitHub Actions.
 
 ## 4. Deploy access: SSH key, host key and GHCR login
 
