@@ -1,0 +1,100 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: non-prod
+        type: choice
+        options: [non-prod, production]
+      image_tag:
+        description: Image tag to deploy, e.g. sha-1a2b3c4 (see the Build run summary)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'non-prod' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only pushes to main auto-deploy; Build runs for pull requests must never reach the NAS.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'non-prod' }}
+    env:
+      IMAGE: ghcr.io/rajesh734/pongal-ui/community-site
+      ENVIRONMENT: ${{ inputs.environment || 'non-prod' }}
+      INPUT_TAG: ${{ inputs.image_tag }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Resolve target
+        run: |
+          if [ -n "$HEAD_SHA" ]; then TAG="sha-${HEAD_SHA::7}"; else TAG="$INPUT_TAG"; fi
+          if ! printf '%s' "$TAG" | grep -Eq '^[A-Za-z0-9_.-]{1,128}$' || [ "$TAG" = latest ]; then
+            echo "Invalid image tag '$TAG' (use an immutable tag such as sha-1a2b3c4)"; exit 1
+          fi
+          case "$ENVIRONMENT" in
+            production) DIR=/volume1/platform/docker/prod/community-site ;;
+            non-prod) DIR=/volume1/platform/docker/non-prod/community-site ;;
+            *) echo "Unknown environment '$ENVIRONMENT'"; exit 1 ;;
+          esac
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "DEPLOY_DIR=$DIR" >> "$GITHUB_ENV"
+          echo "Deploying \`$IMAGE:$TAG\` to **$ENVIRONMENT**" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Join tailnet
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Configure SSH
+        env:
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_USER: ${{ secrets.NAS_USER }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          NAS_KNOWN_HOSTS: ${{ secrets.NAS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$NAS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$NAS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host nas
+            HostName $NAS_HOST
+            User $NAS_USER
+            Port ${NAS_PORT:-22}
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            ConnectTimeout 20
+          EOF
+
+      - name: Copy compose file
+        run: ssh nas "cat > '$DEPLOY_DIR/compose.yaml.new'" < compose.yaml
+
+      - name: Deploy on NAS
+        run: ssh nas "sh -s -- '$DEPLOY_DIR' '$IMAGE' '$TAG'" < scripts/nas-deploy.sh
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

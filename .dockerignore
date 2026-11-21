@@ -1,0 +1,13 @@
+.git
+.github
+.agents
+node_modules
+data
+secrets
+secrets.example
+.env
+.env.*
+openspec
+test
+docs
+*.md
