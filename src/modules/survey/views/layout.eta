@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= it.title %></title>
+  <link rel="stylesheet" href="/public/css/site.css">
+<% if (it.importMap) { %>
+  <script type="importmap"><%~ it.importMap %></script>
+<% } %>
+<% if (it.enhance) { %>
+  <script type="module" src="/public/js/survey.js"></script>
+<% } %>
+<% if (it.turnstileSiteKey) { %>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<% } %>
+</head>
+<body>
+  <main class="page">
+<%~ it.body %>
+  </main>
+</body>
+</html>

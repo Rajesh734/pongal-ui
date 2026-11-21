@@ -9,8 +9,10 @@ import {
   jsonb,
   pgTable,
   text,
+  primaryKey,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -81,4 +83,74 @@ export const changeHistory = pgTable(
     check('change_history_action_check', sql`${t.action} in ('create','update','delete','restore','anonymize')`),
     index('change_history_entity_idx').on(t.entityType, t.entityId, t.createdAt),
   ],
+);
+
+export const surveyResponses = pgTable(
+  'survey_responses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    foodCode: text('food_code').notNull(),
+    culturalCode: text('cultural_code').notNull(),
+    contributionCode: text('contribution_code').notNull(),
+    comments: text('comments'),
+    consentAt: tstz('consent_at').notNull(),
+    editTokenHash: text('edit_token_hash').notNull().unique(),
+    editTokenIssuedAt: tstz('edit_token_issued_at').notNull(),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
+    deletedAt: tstz('deleted_at'),
+  },
+  (t) => [
+    check('survey_responses_comments_check', sql`char_length(${t.comments}) <= 2000`),
+    uniqueIndex('ux_response_active').on(t.eventId, t.householdId).where(sql`${t.deletedAt} is null`),
+  ],
+);
+
+export const responseDays = pgTable(
+  'response_days',
+  {
+    responseId: uuid('response_id')
+      .notNull()
+      .references(() => surveyResponses.id),
+    eventDayId: uuid('event_day_id')
+      .notNull()
+      .references(() => eventDays.id),
+    likelihood: text('likelihood').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.responseId, t.eventDayId] }),
+    check('response_days_likelihood_check', sql`${t.likelihood} in ('definitely','likely','maybe')`),
+  ],
+);
+
+export const responseHeadcounts = pgTable(
+  'response_headcounts',
+  {
+    responseId: uuid('response_id')
+      .notNull()
+      .references(() => surveyResponses.id),
+    bandCode: text('band_code').notNull(),
+    count: integer('count').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.responseId, t.bandCode] }),
+    check('response_headcounts_count_check', sql`${t.count} between 0 and 100`),
+  ],
+);
+
+export const responseVolunteerRoles = pgTable(
+  'response_volunteer_roles',
+  {
+    responseId: uuid('response_id')
+      .notNull()
+      .references(() => surveyResponses.id),
+    roleCode: text('role_code').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.responseId, t.roleCode] })],
 );

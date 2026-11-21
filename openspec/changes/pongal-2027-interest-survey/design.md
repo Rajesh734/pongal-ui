@@ -110,6 +110,11 @@ The transport is created only when `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` and `SM
 ### D9. Views and mobile-first CSS
 One Eta partial `survey-form.eta` is used for both new and edit (the edit view renders email as read-only text). Each field has a `<label>`, an error `<p id="<field>-error" role="alert">` linked with `aria-describedby`, and focus moves to the summary on server errors. CSS is a single column, 16 px base font (prevents iOS zoom), 44 px minimum targets, `inputmode="numeric"` with `pattern="[0-9]*"` for counts, `type="tel"` with `autocomplete="tel-national"`, `type="email"` with `autocomplete="email"`, and no fixed widths.
 
+### D10. Removal CLI runs with the site stopped
+`npm run survey:remove -- <event-slug> <email>` soft-deletes one active response through the repo with history actor `system`. Production uses PGlite with a data folder, and PGlite allows only one process per data folder, so the CLI must not run beside the live server. Run it in a one-off container while the site is stopped: `docker compose stop community-site`, then `docker compose run --rm community-site npm run survey:remove -- ...`, then `docker compose start community-site`. With Postgres it can run at any time.
+- *`docker compose exec` into the running container* - rejected: two PGlite processes on one data folder can corrupt it.
+- *Admin HTTP endpoint for removal* - rejected: admin pages and Cloudflare Access come in `admin-csv-export`; this is a stop-gap.
+
 ## Risks / Trade-offs
 
 - [Anyone who knows a family's email can overwrite its answers] -> Every version is in history for an admin restore later. If SMTP is on, the real owner gets an email with "If you didn't fill in this survey". The older edit link stops working, so the person who overwrote it gains no ongoing view of the family's later answers.

@@ -1,0 +1,6 @@
+<% layout('./layout', { title: it.title }) %>
+    <h1><%= it.title %></h1>
+    <p class="notice"><%= it.message %></p>
+<% if (it.link) { %>
+    <p><a class="button" href="<%= it.link.href %>"><%= it.link.text %></a></p>
+<% } %>

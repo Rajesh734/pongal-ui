@@ -63,3 +63,20 @@ export function formatInZone(date, timeZone = DEFAULT_TIMEZONE) {
   const zone = get('timeZoneName').replace(/^([A-Z])[SD]T$/, '$1T');
   return `${get('weekday')}, ${get('month')} ${get('day')}, ${get('hour')}:${get('minute')} ${get('dayPeriod').toUpperCase()} ${zone}`;
 }
+
+/** Formats like "Friday, November 20 at 8:00 PM ET". */
+export function formatLongInZone(date, timeZone = DEFAULT_TIMEZONE) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const zone = get('timeZoneName').replace(/^([A-Z])[SD]T$/, '$1T');
+  return `${get('weekday')}, ${get('month')} ${get('day')} at ${get('hour')}:${get('minute')} ${get('dayPeriod').toUpperCase()} ${zone}`;
+}
