@@ -164,3 +164,6 @@ vite.config.ts.timestamp-*
 secrets/
 data/
 .DS_Store
+
+# OpenSpec exploration notes
+openspec/notes/
