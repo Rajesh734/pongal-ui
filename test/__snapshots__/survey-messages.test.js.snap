@@ -36,6 +36,7 @@ exports[`renders every survey message for the Pongal 2027 config 1`] = `
   "nameTooLong": "Your name can be up to 80 characters.",
   "noOpenSurveys": "There are no open surveys right now. Please check back later.",
   "notOpen": "The Pongal 2027 interest survey opens on Friday, November 20 at 8:00 PM ET.",
+  "pongalGreeting": "இனிய பொங்கல் நல்வாழ்த்துக்கள்",
   "rolesInvalid": "Please choose from the listed volunteer roles.",
   "saveLink": "Save this link to change your answers until Tuesday, November 24 at 11:59 PM ET.",
   "savedNew": "Thank you, Priya! Your family's response for Pongal 2027 has been saved.",
@@ -44,7 +45,9 @@ exports[`renders every survey message for the Pongal 2027 config 1`] = `
   "tooLarge": "That submission is too large. Please shorten your comments and try again.",
   "tooManySubmissions": "Too many submissions from your network. Please try again in an hour.",
   "turnstileFailed": "We couldn't confirm you're not a robot. Please try again.",
+  "turnstileMisconfigured": "Our spam check isn't set up correctly. Please contact the organizers.",
   "turnstileNotConfigured": "Turnstile is not configured - public forms rely on the honeypot and rate limits only.",
+  "turnstileTestKeys": "Turnstile is using Cloudflare test keys - the widget shows 'For testing only' and does not protect the form.",
   "turnstileUnreachable": "We couldn't reach our spam check. Please try again in a minute.",
 }
 `;

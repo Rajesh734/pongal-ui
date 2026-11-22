@@ -94,16 +94,18 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
   });
   const postOptions = { bodyLimit: BODY_LIMIT, onRequest: submissionLimit };
 
-  const message = (reply, title, text, { status = 200, link } = {}) =>
-    reply.code(status).view(`${VIEWS}/message.eta`, { title, message: text, link });
+  const themed = (event) => (event ? { theme: event.configSnapshot.theme ?? null, eventName: event.name, m } : { theme: null, m });
+
+  const message = (reply, title, text, { status = 200, link, event } = {}) =>
+    reply.code(status).view(`${VIEWS}/message.eta`, { title, message: text, link, ...themed(event) });
 
   const windowPage = (reply, event, state) =>
     state === 'not_open'
-      ? message(reply, event.name, m.notOpen(event.name, formatLongInZone(event.surveyOpensAt, event.timezone)))
-      : message(reply, event.name, event.configSnapshot.survey.closed_message);
+      ? message(reply, event.name, m.notOpen(event.name, formatLongInZone(event.surveyOpensAt, event.timezone)), { event })
+      : message(reply, event.name, event.configSnapshot.survey.closed_message, { event });
 
   const invalidLink = (reply, event) =>
-    message(reply, 'Link not valid', m.invalidLink, { status: 404, link: { href: `/s/${event.slug}`, text: 'Fill in the survey' } });
+    message(reply, 'Link not valid', m.invalidLink, { status: 404, link: { href: `/s/${event.slug}`, text: 'Fill in the survey' }, event });
 
   const renderForm = (reply, event, { mode, action, values = {}, errors = {}, summary = null, email = null, status = 200 }) => {
     const count = Object.keys(errors).length;
@@ -121,7 +123,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
       turnstileSiteKey: turnstile ? config.TURNSTILE_SITE_KEY : null,
       importMap: IMPORT_MAP,
       configJson: surveyConfigJson(event, mode, email),
-      m,
+      ...themed(event),
       likelihoodKey,
       headcountKey,
     });
@@ -148,18 +150,27 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
   async function screen(request, reply, event, form) {
     if (!isEmpty(request.body?.website)) {
       request.log.info('honeypot triggered');
-      message(reply, event.name, m.honeypotThanks);
+      message(reply, event.name, m.honeypotThanks, { event });
       return true;
     }
     if (!turnstile) return false;
-    const outcome = await verifyTurnstile({
+    const result = await verifyTurnstile({
       secret: config.TURNSTILE_SECRET,
       token: request.body?.['cf-turnstile-response'],
       ip: clientIp(request),
       fetchImpl,
     });
-    if (outcome === 'ok') return false;
-    renderForm(reply, event, { ...form, summary: outcome === 'unreachable' ? m.turnstileUnreachable : m.turnstileFailed, status: 400 });
+    if (result.outcome === 'ok') return false;
+    let summary = m.turnstileFailed;
+    if (result.outcome === 'misconfigured') {
+      const reason = result.codes.length ? result.codes.join(', ') : `HTTP ${result.status}`;
+      request.log.error(`Turnstile rejected the secret key (${reason}) - check TURNSTILE_SECRET and TURNSTILE_SITE_KEY`);
+      summary = m.turnstileMisconfigured;
+    } else if (result.outcome === 'unreachable') {
+      request.log.warn({ status: result.status ?? null, error: result.error ?? null }, 'Turnstile verification unreachable');
+      summary = m.turnstileUnreachable;
+    }
+    renderForm(reply, event, { ...form, summary, status: 400 });
     return true;
   }
 
@@ -229,6 +240,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
         saveLink: m.saveLink(formatLongInZone(event.surveyClosesAt, event.timezone)),
         emailedNote: emailed === '1' ? m.emailed(household.email) : null,
         importMap: IMPORT_MAP,
+        ...themed(event),
       });
     }
     return renderForm(reply, event, {

@@ -96,6 +96,8 @@ If the partial unique index still rejects an insert (two saves racing on differe
 
 ### D7. Abuse protection
 - Turnstile: the widget script `https://challenges.cloudflare.com/turnstile/v0/api.js` and `frame-src https://challenges.cloudflare.com` are added to the CSP. The server POSTs to `https://challenges.cloudflare.com/turnstile/v0/siteverify` with `secret`, `response` and `remoteip`, using `AbortSignal.timeout(5000)`. On timeout it fails closed.
+- Turnstile outcomes (Cloudflare answers HTTP 400 for a wrong or missing secret, verified with curl): `ok` (200, `success: true`); `failed` (no token, or 200 with `success: false` such as `invalid-input-response` / `timeout-or-duplicate`) -> robot message; `misconfigured` (any 4xx, or error codes `invalid-input-secret` / `missing-input-secret`) -> "Our spam check isn't set up correctly. Please contact the organizers." and an error log naming the codes; `unreachable` (timeout, network error, 5xx) -> "try again in a minute" and a warning log with the status or error name. Logs never include the secret, token or IP.
+- Startup also warns when a key matches Cloudflare's published test keys (`^[123]x0{20,}[A-F]{2}$`), because a test site key paired with a real secret makes every check fail and a test pair protects nothing.
 - Client IP: `CF-Connecting-IP`, falling back to the socket address. This is safe because the container has no published port, so only `cloudflared` reaches it.
 - `@fastify/rate-limit` in memory: global 120 requests/min per IP, plus a route-level 10/hour per IP shared by both POST routes.
 - Honeypot: a visually hidden `website` input (off-screen, `tabindex=-1`, `autocomplete=off`, `aria-hidden`).

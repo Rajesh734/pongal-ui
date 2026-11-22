@@ -1,4 +1,5 @@
 <% layout('./layout', { title: it.title, enhance: true, importMap: it.importMap }) %>
+    <section class="card">
     <h1><%= it.heading %></h1>
 
     <h2>Your answers</h2>
@@ -8,8 +9,9 @@
       <dd><%= value %></dd>
 <% } %>
     </dl>
+    </section>
 
-    <section class="edit-link" x-data="copyLink">
+    <section class="card edit-link" x-data="copyLink">
       <h2>Your private edit link</h2>
       <p><%= it.saveLink %></p>
       <p class="link-box"><a id="edit-link" href="<%= it.editPath %>"><%= it.link %></a></p>

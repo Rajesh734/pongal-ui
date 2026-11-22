@@ -114,6 +114,27 @@ To try it locally first: `SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=... S
 
 If sending fails the response is still saved; the log shows `Edit-link email failed` with the SMTP response code only. To stop emails, revoke the app password in the Google Account (and empty `secrets/smtp_pass`).
 
+### Turnstile troubleshooting
+
+The site key (`TURNSTILE_SITE_KEY` in `.env`) and the secret (`secrets/turnstile_secret`) must come from the **same** widget: Cloudflare dashboard > Turnstile > your widget > Settings. The widget's hostnames must include the survey hostname.
+
+| What you see | Cause | Fix |
+|---|---|---|
+| "For testing only. If seen, report to site owner." under the widget | `TURNSTILE_SITE_KEY` is a Cloudflare test key (`1x0000…`, `2x0000…`, `3x0000…`) | Put the real site key in `.env` |
+| "Our spam check isn't set up correctly. Please contact the organizers." | Cloudflare rejected the secret (it is wrong, empty, or from another widget) | Store the secret of the same widget with `read -rs` (section 10) |
+| "We couldn't reach our spam check. Please try again in a minute." | The NAS could not reach Cloudflare within 5 seconds, or Cloudflare had an error | Check the NAS internet connection; it usually clears by itself |
+| "We couldn't confirm you're not a robot. Please try again." | The visitor's widget token was missing, expired or reused | Nothing to fix; the visitor submits again |
+
+After changing either key, restart and check the log (it shows only Cloudflare error codes, never the keys):
+
+```sh
+cd /volume1/platform/docker/prod/community-site     # or non-prod
+IMAGE_TAG=$(cat .deployed-tag) docker compose up -d --force-recreate
+docker logs community-site-prod 2>&1 | grep Turnstile    # community-site-non-prod in non-prod
+```
+
+Lines to look for: `Turnstile is using Cloudflare test keys` (replace the keys), `Turnstile rejected the secret key (invalid-input-secret)` (wrong secret), `Turnstile verification unreachable` (network), `Turnstile is not configured` (a key is missing). No output means the keys are set and accepted so far.
+
 ### Upgrading a folder from the Docker-network setup
 
 Earlier versions joined the app to the cloudflared Docker network. If an environment folder was set up that way, the next deploy fails with `required variable HOST_PORT is missing a value`. Before deploying:

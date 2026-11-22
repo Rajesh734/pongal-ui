@@ -1,0 +1,14 @@
+<svg class="art art-thoranam" data-motif="thoranam" viewBox="0 0 480 44" preserveAspectRatio="xMidYMin slice" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="thoranam-tile" width="40" height="44" patternUnits="userSpaceOnUse">
+      <path class="f-cane" d="M20 4 q-8 14 0 34 q8 -20 0 -34Z"/>
+      <path class="s-leaf-vein" fill="none" stroke-width="0.8" d="M20 6 v30"/>
+      <circle class="f-marigold" cx="0" cy="5" r="4.5"/>
+      <circle class="f-marigold" cx="40" cy="5" r="4.5"/>
+      <circle class="f-kum" cx="0" cy="5" r="1.6"/>
+      <circle class="f-kum" cx="40" cy="5" r="1.6"/>
+    </pattern>
+  </defs>
+  <path class="s-mar" stroke-width="2" d="M0 4 H480"/>
+  <rect width="480" height="44" fill="url(#thoranam-tile)"/>
+</svg>

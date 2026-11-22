@@ -9,9 +9,20 @@ export function turnstileEnabled(config) {
   return Boolean(config.TURNSTILE_SITE_KEY && config.TURNSTILE_SECRET);
 }
 
-/** Returns 'ok', 'failed' (missing or rejected token) or 'unreachable' (timeout or network error). */
+const TEST_KEY = /^[123]x0{20,}[A-F]{2}$/;
+const SECRET_ERRORS = ['invalid-input-secret', 'missing-input-secret'];
+
+export function usesTurnstileTestKeys(config) {
+  return [config.TURNSTILE_SITE_KEY, config.TURNSTILE_SECRET].some((key) => key && TEST_KEY.test(key));
+}
+
+/**
+ * Returns { outcome, status?, codes?, error? } where outcome is 'ok', 'failed' (missing or rejected token),
+ * 'misconfigured' (Cloudflare rejected our secret) or 'unreachable' (timeout, network error, 5xx).
+ * Details hold only the HTTP status, Cloudflare error codes or the error name - safe to log.
+ */
 export async function verifyTurnstile({ secret, token, ip, fetchImpl = fetch, timeoutMs = 5000 }) {
-  if (!token) return 'failed';
+  if (!token) return { outcome: 'failed' };
   let res;
   try {
     res = await fetchImpl(VERIFY_URL, {
@@ -19,10 +30,13 @@ export async function verifyTurnstile({ secret, token, ip, fetchImpl = fetch, ti
       body: new URLSearchParams({ secret, response: token, remoteip: ip ?? '' }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-  } catch {
-    return 'unreachable';
+  } catch (err) {
+    return { outcome: 'unreachable', error: err?.name ?? 'Error' };
   }
-  if (!res.ok) return 'unreachable';
+  const { status } = res;
+  if (status >= 500) return { outcome: 'unreachable', status };
   const body = await res.json().catch(() => ({}));
-  return body.success === true ? 'ok' : 'failed';
+  const codes = (Array.isArray(body['error-codes']) ? body['error-codes'] : []).filter((c) => /^[a-z-]{1,40}$/.test(c));
+  if (status >= 400 || codes.some((c) => SECRET_ERRORS.includes(c))) return { outcome: 'misconfigured', status, codes };
+  return body.success === true ? { outcome: 'ok' } : { outcome: 'failed', codes };
 }

@@ -12,11 +12,11 @@ afterEach(async () => {
   ctx = undefined;
 });
 
-function cloudflare(success) {
+function cloudflare(success, { status = 200, codes = [] } = {}) {
   const calls = [];
   const fetchImpl = async (url, init) => {
     calls.push({ url, body: Object.fromEntries(init.body), signal: init.signal });
-    return { ok: true, json: async () => ({ success }) };
+    return { ok: status < 300, status, json: async () => ({ success, 'error-codes': codes }) };
   };
   return { calls, fetchImpl };
 }
@@ -54,16 +54,60 @@ describe('Turnstile', () => {
     const fetchImpl = async () => {
       throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
     };
-    ctx = await surveyApp({ config: TURNSTILE, fetchImpl });
-    const res = await ctx.submit({ 'cf-turnstile-response': 'any' });
+    const logs = captureStream();
+    ctx = await surveyApp({ config: TURNSTILE, fetchImpl, logStream: logs.stream, logLevel: 'info' });
+    const res = await ctx.submit({ 'cf-turnstile-response': 'any' }, { 'cf-connecting-ip': '203.0.113.7' });
     expect(res.body).toContain('We couldn&#39;t reach our spam check. Please try again in a minute.');
     expect(await ctx.count('survey_responses')).toBe(0);
+    expect(logs.lines().find((l) => l.msg === 'Turnstile verification unreachable')).toMatchObject({ level: 40, error: 'TimeoutError' });
+  });
+
+  it('Cloudflare unreachable (HTTP 5xx)', async () => {
+    const logs = captureStream();
+    ctx = await surveyApp({ config: TURNSTILE, fetchImpl: cloudflare(false, { status: 503 }).fetchImpl, logStream: logs.stream, logLevel: 'info' });
+    const res = await ctx.submit({ 'cf-turnstile-response': 'any' });
+    expect(res.body).toContain('We couldn&#39;t reach our spam check. Please try again in a minute.');
+    expect(logs.lines().find((l) => l.msg === 'Turnstile verification unreachable')).toMatchObject({ status: 503 });
+  });
+
+  it('Rejected secret key', async () => {
+    const logs = captureStream();
+    const cf = cloudflare(false, { status: 400, codes: ['invalid-input-secret'] });
+    ctx = await surveyApp({ config: TURNSTILE, fetchImpl: cf.fetchImpl, logStream: logs.stream, logLevel: 'info' });
+    const res = await ctx.submit({ 'cf-turnstile-response': 'token-abc', name: 'Kept Name' }, { 'cf-connecting-ip': '203.0.113.7' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toContain('Our spam check isn&#39;t set up correctly. Please contact the organizers.');
+    expect(res.body).toContain('value="Kept Name"');
+    expect(await ctx.count('survey_responses')).toBe(0);
+    const line = logs.lines().find((l) => l.level === 50);
+    expect(line.msg).toBe('Turnstile rejected the secret key (invalid-input-secret) - check TURNSTILE_SECRET and TURNSTILE_SITE_KEY');
+    for (const secret of ['secret-xyz', 'token-abc', '203.0.113.7']) expect(logs.text()).not.toContain(secret);
+  });
+
+  it('treats any 4xx without codes as misconfigured', async () => {
+    const result = await verifyTurnstile({ secret: 's', token: 't', fetchImpl: cloudflare(false, { status: 401 }).fetchImpl });
+    expect(result).toEqual({ outcome: 'misconfigured', status: 401, codes: [] });
   });
 
   it('times out a slow verification request', async () => {
     const hanging = (url, init) =>
       new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(init.signal.reason)));
-    expect(await verifyTurnstile({ secret: 's', token: 't', ip: '1.2.3.4', fetchImpl: hanging, timeoutMs: 50 })).toBe('unreachable');
+    const result = await verifyTurnstile({ secret: 's', token: 't', ip: '1.2.3.4', fetchImpl: hanging, timeoutMs: 50 });
+    expect(result).toEqual({ outcome: 'unreachable', error: 'TimeoutError' });
+  });
+
+  it('Test site key', async () => {
+    const logs = captureStream();
+    ctx = await surveyApp({ config: { TURNSTILE_SITE_KEY: '1x00000000000000000000AA', TURNSTILE_SECRET: 'real-secret' }, logStream: logs.stream, logLevel: 'info' });
+    expect(logs.lines().filter((l) => l.level === 40).map((l) => l.msg)).toContain(
+      "Turnstile is using Cloudflare test keys - the widget shows 'For testing only' and does not protect the form.",
+    );
+  });
+
+  it('does not warn about real-looking keys', async () => {
+    const logs = captureStream();
+    ctx = await surveyApp({ config: TURNSTILE, logStream: logs.stream, logLevel: 'info' });
+    expect(logs.text()).not.toContain('test keys');
   });
 
   it('Not configured', async () => {

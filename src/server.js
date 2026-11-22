@@ -7,11 +7,12 @@ import fastifyStatic from '@fastify/static';
 import view from '@fastify/view';
 import { Eta } from 'eta';
 import { formatConfig, loadConfig } from './config.js';
-import { clientIp, turnstileEnabled } from './core/abuse.js';
+import { clientIp, turnstileEnabled, usesTurnstileTestKeys } from './core/abuse.js';
 import { scheduleBackups } from './core/backup.js';
 import { loadEventConfigs } from './core/event-config.js';
 import { healthRoutes } from './core/health.js';
 import { genReqId, loggerOptions, registerRequestLogging } from './core/logger.js';
+import { findLogo, SITE_LOCATION, SITE_NAME } from './core/site.js';
 import { createDatabase } from './db/index.js';
 import { seedEvents } from './db/seed-events.js';
 import { createMailer } from './modules/survey/mailer.js';
@@ -24,7 +25,7 @@ const NOT_FOUND_MESSAGE = "Sorry, we couldn't find that page.";
 const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again in a few minutes.';
 const CLIENT_ERROR_MESSAGE = "Sorry, we couldn't process that request.";
 
-export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer } = {}) {
+export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer, imgDir = `${SRC_DIR}public/img` } = {}) {
   const app = Fastify({
     logger: loggerOptions({ level: logLevel ?? (config.NODE_ENV === 'test' ? 'silent' : 'info'), stream: logStream }),
     genReqId,
@@ -33,6 +34,7 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   });
   app.log.info(formatConfig(config));
   if (!turnstileEnabled(config)) app.log.warn(messages.turnstileNotConfigured);
+  if (usesTurnstileTestKeys(config)) app.log.warn(messages.turnstileTestKeys);
 
   await app.register(helmet, {
     contentSecurityPolicy: {
@@ -57,7 +59,13 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   // Browser copies of the shared validation code and its Zod build (see design D2).
   await app.register(fastifyStatic, { root: `${SRC_DIR}shared`, prefix: '/shared/', decorateReply: false });
   await app.register(fastifyStatic, { root: `${SRC_DIR}public/vendor`, prefix: '/vendor/', decorateReply: false });
-  await app.register(view, { engine: { eta: new Eta() }, root: SRC_DIR, production: config.NODE_ENV === 'production' });
+  const site = { name: SITE_NAME, location: SITE_LOCATION, logo: findLogo(imgDir) };
+  await app.register(view, {
+    engine: { eta: new Eta() },
+    root: SRC_DIR,
+    production: config.NODE_ENV === 'production',
+    defaultContext: { site },
+  });
 
   app.addHook('onSend', async (request, reply) => {
     reply.header('X-Robots-Tag', 'noindex, nofollow');

@@ -1,0 +1,9 @@
+  <section class="festive-banner" aria-label="<%= it.eventName %>">
+    <div class="festive-hero">
+      <img class="festive-hero__image" src="/public/img/pongal-hero.webp" alt="Pongal celebration with a decorated Pongal pot, sugarcane, flowers, kolam and decorated bulls">
+      <div class="festive-hero__overlay">
+        <p class="festive-banner__greeting" lang="ta"><%= it.m.pongalGreeting %></p>
+        <p class="festive-banner__event"><%= it.eventName %></p>
+      </div>
+    </div>
+  </section>

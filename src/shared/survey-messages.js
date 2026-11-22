@@ -39,7 +39,9 @@ export const messages = {
 
   turnstileFailed: "We couldn't confirm you're not a robot. Please try again.",
   turnstileUnreachable: "We couldn't reach our spam check. Please try again in a minute.",
+  turnstileMisconfigured: "Our spam check isn't set up correctly. Please contact the organizers.",
   turnstileNotConfigured: 'Turnstile is not configured - public forms rely on the honeypot and rate limits only.',
+  turnstileTestKeys: "Turnstile is using Cloudflare test keys - the widget shows 'For testing only' and does not protect the form.",
   honeypotThanks: 'Thank you! Your response has been received.',
   tooManySubmissions: 'Too many submissions from your network. Please try again in an hour.',
   tooFast: "You're going a bit fast. Please wait a minute and try again.",
@@ -47,4 +49,12 @@ export const messages = {
 
   emailSubject: (eventName) => `Your ${eventName} survey link`,
   emailNotYou: "If you didn't fill in this survey, please reply to this email.",
+
+  pongalGreeting: 'இனிய பொங்கல் நல்வாழ்த்துக்கள்',
+  sections: {
+    about: { ta: 'உங்களைப் பற்றி', en: 'About you' },
+    attending: { ta: 'வருகை', en: 'Attending' },
+    food: { ta: 'உணவும் உதவியும்', en: 'Food & helping' },
+    finish: { ta: 'நிறைவு', en: 'Finish' },
+  },
 };

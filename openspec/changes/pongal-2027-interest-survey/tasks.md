@@ -48,6 +48,9 @@
 - [x] 7.3 Add honeypot handling; add tests for scenarios "Bot fills hidden field" and "Real visitor"; verify they pass
 - [x] 7.4 Configure rate limits (global 120/min, POST 10/hour per `CF-Connecting-IP`) and 429 pages; add tests for scenarios "Eleventh submission", "Different IPs", "Burst of page loads"; verify they pass
 - [x] 7.5 Set `bodyLimit` 16 KB with the 413 page; add test for scenario "Oversized body"; verify it passes
+- [x] 7.6 Classify Turnstile outcomes per design D7 (`ok`/`failed`/`misconfigured`/`unreachable`) with the logging it describes; add tests for scenarios "Rejected secret key" and "Cloudflare unreachable" (HTTP 5xx and network error) asserting the logs contain no secret, token or IP; verify they pass
+- [x] 7.7 Add the startup warning for Cloudflare test keys; add test for scenario "Test site key"; verify it passes
+- [x] 7.8 Add a "Turnstile troubleshooting" section to `docs/deploy-nas.md` ("For testing only" label, "isn't set up correctly" message, how to copy the site key and secret from the same widget, `docker logs ... | grep Turnstile`); verify the commands in it against the compose file
 
 ## 8. Edit-link email
 
@@ -58,7 +61,7 @@
 
 ## 9. Deploy and verify
 
-- [ ] 9.1 Put the real Turnstile secret on the NAS with `read -rs`, set `TURNSTILE_SITE_KEY` in `.env`, add the survey hostname to the Turnstile widget's allowed domains; verify the widget renders on the live page
+- [ ] 9.1 Copy the site key and secret from the **same** Turnstile widget (not Cloudflare's test keys); put the secret on the NAS with `read -rs`, set `TURNSTILE_SITE_KEY` in `.env`, add the survey hostname to the widget's allowed domains; verify the live widget shows no "For testing only" label, a test submission saves, and `docker logs community-site-<env> 2>&1 | grep Turnstile` shows no test-key, rejected-key or not-configured line
 - [ ] 9.2 Deploy the new image; verify the container is healthy, `https://<host>/s/pongal-2027` shows the survey (the `0001_survey` migration is applied at startup; a missing table would fail the first save in 9.4), and `docker logs community-site-<env> 2>&1 | grep -c "Turnstile is not configured"` on the NAS prints 0
 - [ ] 9.3 Before 8:00 PM ET, verify the live page shows "The Pongal 2027 interest survey opens on Friday, November 20 at 8:00 PM ET."
 - [ ] 9.4 After 8:00 PM ET, submit one test response on a phone, then resubmit with the same email in different letter case; verify one response with the second answers, the old edit link returns the invalid-link page, and the new link pre-fills the form

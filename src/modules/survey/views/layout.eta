@@ -15,7 +15,11 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <% } %>
 </head>
-<body>
+<body<% if (it.theme) { %> class="theme-<%= it.theme %>"<% } %>>
+<%~ include('./partials/site-header', { site: it.site }) %>
+<% if (it.theme === 'pongal') { %>
+<%~ include('./themes/pongal/banner', { eventName: it.eventName, m: it.m }) %>
+<% } %>
   <main class="page">
 <%~ it.body %>
   </main>
