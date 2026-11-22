@@ -8,7 +8,6 @@ import { silentLogger, tempDir } from './helpers.js';
 import { NOV_25, surveyApp, TOKEN_PATH } from './survey-app.js';
 
 const GREETING = 'இனிய பொங்கல் நல்வாழ்த்துக்கள்';
-const HERO = 'src/public/img/pongal-hero.webp';
 
 let ctx;
 afterEach(async () => {
@@ -25,6 +24,7 @@ describe('site header', () => {
     expect(header).toContain('Eastcoast Tamil Community');
     expect(header).toContain('New Hampshire, USA');
     expect(header).not.toContain('<img');
+    expect((await ctx.app.inject('/s/pongal-2027')).body).not.toContain('rel="icon"');
   });
 
   it('Logo added', async () => {
@@ -33,6 +33,7 @@ describe('site header', () => {
     ctx = await surveyApp({ imgDir: dir });
     const header = headerOf((await ctx.app.inject('/s/pongal-2027')).body);
     expect(header).toMatch(/<img class="site-logo" src="\/public\/img\/logo.png" alt="Eastcoast Tamil Community logo"/);
+    expect((await ctx.app.inject('/s/pongal-2027')).body).toContain('<link rel="icon" href="/public/img/logo.png">');
     expect(header.indexOf('<img')).toBeLessThan(header.indexOf('site-name'));
     expect(header).toContain('New Hampshire, USA');
   });
@@ -57,27 +58,31 @@ describe('site header', () => {
 });
 
 describe('Pongal banner', () => {
-  it('Pongal 2027 hero', async () => {
+  it('Pongal 2027 banner', async () => {
     ctx = await surveyApp();
     const { body } = await ctx.app.inject('/s/pongal-2027');
     expect(body).toContain('<body class="theme-pongal">');
-    expect(body).toContain('<img class="festive-hero__image" src="/public/img/pongal-hero.webp"');
-    expect(body).toContain('alt="Pongal celebration with a decorated Pongal pot, sugarcane, flowers, kolam and decorated bulls"');
+    expect(body).toContain('data-motif="traditional-dress"');
+    expect(body).toContain('data-motif="sugarcane"');
+    expect(body).toContain('data-motif="sun"');
+    expect(body).toContain('data-motif="pongal-pot"');
     expect(body).toContain(`<p class="festive-banner__greeting" lang="ta">${GREETING}</p>`);
     expect(body).toContain('<p class="festive-banner__event">Pongal 2027</p>');
-    expect(body).not.toContain('data-motif=');
+    expect(body).not.toContain('pongal-hero.webp');
+    expect(body).not.toContain('pongal-hero-mobile.webp');
+    expect(body).not.toContain('pongal-hero-desktop.webp');
   });
 
   it('Screen reader', async () => {
     ctx = await surveyApp();
     const { body } = await ctx.app.inject('/s/pongal-2027');
-    expect(body).toContain('alt="Pongal celebration with a decorated Pongal pot, sugarcane, flowers, kolam and decorated bulls"');
     expect(body).toContain(`<p class="festive-banner__greeting" lang="ta">${GREETING}</p>`);
+    expect(body).toContain('aria-hidden="true"');
   });
 
   it('Page weight', () => {
-    expect(statSync(HERO).size).toBeLessThanOrEqual(250 * 1024);
     expect(readFileSync('src/modules/survey/views/themes/pongal/banner.eta', 'utf8')).not.toMatch(/https?:/);
+    expect(readFileSync('src/modules/survey/views/themes/pongal/banner.eta', 'utf8')).not.toMatch(/pongal-hero.*\.webp/);
   });
 
   it('Event without a theme', async () => {

@@ -1,6 +1,10 @@
-ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data/ present # Runbook: deploy community-site on the Synology NAS
+ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data/ present
+
+# Runbook: deploy community-site on the Synology NAS
 
 The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` production): the tunnel reaches it through `localhost`, LAN devices cannot. Data lives in an embedded PGlite database in `data/pglite`, with nightly backups in `data/backups`.
+
+For a live outage involving an unhealthy container, Turnstile errors, unreadable secret files, or a missing `IMAGE_TAG`, use the focused [Turnstile and NAS recovery runbook](runbooks/2026-11-22-turnstile-nas-recovery.md).
 
 How releases flow:
 
@@ -58,12 +62,14 @@ read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
 # No SMTP yet? Create the file empty instead; the app treats it as not set:
 # : > secrets/smtp_pass
 
-chown -R 1000:1000 secrets data
+chown -R 1000:1000 secrets data   # replace with the container's numeric UID:GID if different
 chmod 700 data
 chmod 711 secrets   # deploy user may resolve the paths for Compose, but not list or read them
 chmod 400 secrets/*
 ls -l secrets   # each file: -r-------- 1 1000 1000
 ```
+
+The `1000:1000` values are examples, not a guaranteed NAS account or group name. Docker checks the numeric UID/GID used by the image. If a secret is unreadable, follow the recovery runbook to obtain the IDs with `docker exec`, then use `chown UID:GID`; do not assume `deploy:deploy` exists as a group.
 
 If a secret file is unreadable, the container stops with `Cannot read secret file for <NAME>: <path>` and the deploy rolls back.
 
@@ -96,7 +102,10 @@ The site can email each family its edit link through a Gmail account (about 500 
    ```sh
    chmod 600 secrets/smtp_pass
    read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
-   chmod 400 secrets/smtp_pass && chown 1000:1000 secrets/smtp_pass
+  chmod 400 secrets/smtp_pass
+  APP_UID=$(docker exec community-site-prod id -u)
+  APP_GID=$(docker exec community-site-prod id -g)
+  chown "$APP_UID:$APP_GID" secrets/smtp_pass
    ```
 
 4. In `.env` set:
@@ -283,7 +292,10 @@ Remove the `pglite.broken-*` folder only after checking the restored data.
 cd /volume1/platform/docker/prod/community-site     # or non-prod
 chmod 600 secrets/smtp_pass
 read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
-chmod 400 secrets/smtp_pass && chown 1000:1000 secrets/smtp_pass
+chmod 400 secrets/smtp_pass
+APP_UID=$(docker exec community-site-prod id -u)
+APP_GID=$(docker exec community-site-prod id -g)
+chown "$APP_UID:$APP_GID" secrets/smtp_pass
 export IMAGE_TAG=$(cat .deployed-tag)
 docker compose up -d --force-recreate
 ```

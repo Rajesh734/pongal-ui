@@ -17,6 +17,7 @@ import { createDatabase } from './db/index.js';
 import { seedEvents } from './db/seed-events.js';
 import { createMailer } from './modules/survey/mailer.js';
 import { IMPORT_MAP_CSP_HASH, surveyRoutes } from './modules/survey/routes.js';
+import { adminRoutes } from './modules/admin/routes.js';
 import { messages } from './shared/survey-messages.js';
 
 const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -25,7 +26,7 @@ const NOT_FOUND_MESSAGE = "Sorry, we couldn't find that page.";
 const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again in a few minutes.';
 const CLIENT_ERROR_MESSAGE = "Sorry, we couldn't process that request.";
 
-export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer, imgDir = `${SRC_DIR}public/img` } = {}) {
+export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer, imgDir = `${SRC_DIR}public/img`, jwks } = {}) {
   const app = Fastify({
     logger: loggerOptions({ level: logLevel ?? (config.NODE_ENV === 'test' ? 'silent' : 'info'), stream: logStream }),
     genReqId,
@@ -87,6 +88,7 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   });
 
   await app.register(healthRoutes, { database });
+  await app.register(adminRoutes, { prefix: '/admin', config, jwks, db: database?.db, now });
   // Survey pages need a real database; tests that only exercise the platform pass a ping-only stub.
   if (database?.db) {
     await app.register(surveyRoutes, { db: database.db, config, now, fetchImpl, mailer });

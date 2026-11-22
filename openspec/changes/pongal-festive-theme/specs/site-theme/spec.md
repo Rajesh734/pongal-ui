@@ -6,8 +6,8 @@ Defines how the public pages look and feel: the site identity, a per-event festi
 
 ## ADDED Requirements
 
-### Requirement: Site header with organization name
-Every survey page SHALL show a header with the organization name "Eastcoast Tamil Community" and, below it, "New Hampshire, USA". When a logo file (`logo.svg`, else `logo.png`) is present in the site's image folder, the header MUST show it before the name with the alt text "Eastcoast Tamil Community logo"; otherwise the header MUST show the name and location only, with no broken image.
+### Requirement: Site header with centered organization name
+Every survey page SHALL show a header with the organization name "Eastcoast Tamil Community" and, below it, "New Hampshire, USA", centered in the header. When a logo file (`logo.svg`, else `logo.png`) is present in the site's image folder, the header MUST show a small, high-contrast light brand mark immediately before and after the centered identity; the leading logo has alt text "Eastcoast Tamil Community logo" and the trailing duplicate is decorative and hidden from assistive technology. Otherwise the header MUST show the name and location only, with no broken image.
 
 #### Scenario: No logo yet
 - **GIVEN** no logo file has been added
@@ -28,13 +28,13 @@ Every survey page SHALL show a header with the organization name "Eastcoast Tami
 - **WHEN** the logo served by the site is measured
 - **THEN** it is at most 50 KB and at most 168 px tall
 
-### Requirement: Realistic Pongal hero
-When an event's theme is `pongal`, its survey pages SHALL show the provided realistic Pongal hero image with the greeting and event name rendered as accessible HTML over it. The image MUST be same-origin, have useful alt text, and be cropped responsively without distortion. Events without a theme MUST show the header without the hero.
+### Requirement: Compact Pongal banner
+When an event's theme is `pongal`, its survey pages SHALL show a compact same-origin banner composed from the existing inline SVG motifs for traditional dress, sugarcane, sun and Pongal pot, with the greeting and event name rendered as accessible HTML text. The banner MUST remain a header-sized visual element rather than a full-screen image, and MUST NOT load `pongal-hero.webp`, `pongal-hero-mobile.webp` or `pongal-hero-desktop.webp`. Events without a theme MUST show the header without the banner.
 
-#### Scenario: Pongal 2027 hero
+### Scenario: Pongal 2027 banner
 - **GIVEN** `pongal-2027` has theme `pongal`
 - **WHEN** a visitor opens `/s/pongal-2027`
-- **THEN** the page shows a realistic Pongal hero image, "இனிய பொங்கல் நல்வாழ்த்துக்கள்" and "Pongal 2027" as selectable HTML text
+- **THEN** the page shows the traditional-dress, sugarcane, sun and Pongal-pot motifs in a compact banner, and "இனிய பொங்கல் நல்வாழ்த்துக்கள்" and "Pongal 2027" as selectable HTML text
 
 #### Scenario: Event without a theme
 - **GIVEN** an event config has no `theme`
@@ -84,7 +84,7 @@ The pages MUST NOT scroll horizontally at any width from 360 px to 1920 px. At 1
 - **THEN** there is no horizontal scrollbar and the banner illustrations do not overlap the greeting text
 
 ### Requirement: Subtle motion that respects reduced motion
-The banner SHALL gently animate steam rising from the Pongal pot, with each cycle lasting at most 6 seconds and nothing flashing. When the visitor's device asks for reduced motion, the system MUST show the artwork without any animation.
+The compact banner MAY gently animate steam rising from the Pongal pot, with each cycle lasting at most 6 seconds and nothing flashing. When the visitor's device asks for reduced motion, the system MUST show the artwork without any animation.
 
 #### Scenario: Reduced motion
 - **GIVEN** the device setting "reduce motion" is on
@@ -96,18 +96,18 @@ The banner SHALL gently animate steam rising from the Pongal pot, with each cycl
 - **WHEN** a visitor opens `/s/pongal-2027`
 - **THEN** the steam above the Pongal pot rises gently and the form stays fully usable while it moves
 
-### Requirement: Hero media does not hurt access or speed
-The hero image MUST be same-origin, MUST have useful alt text, MUST be optimized to at most 250 KB, and MUST not be loaded on pages without the `pongal` theme. Body text and form labels MUST have a contrast ratio of at least 4.5:1 against their background, and error messages MUST stay as readable as before.
+### Requirement: Branded watermark does not hurt access or readability
+Public pages MAY show the transparent `logo.svg` as a sparse, irregular arrangement of small, low-opacity, non-interactive watermark marks across the page background and opaque content surfaces. The marks MUST have visible gaps, stay behind page content, MUST NOT affect layout or keyboard navigation, and MUST preserve body text and form-label contrast at least 4.5:1 against their background. The large raster hero assets MUST not be loaded by the banner.
 
-#### Scenario: Screen reader
+### Scenario: Screen reader
 - **WHEN** a screen reader reads `/s/pongal-2027`
-- **THEN** it reads the hero alt text, greeting and headings
+- **THEN** it reads the greeting and headings; decorative SVG motifs and the watermark are hidden from assistive technology
 
 #### Scenario: No outside requests
 - **GIVEN** Turnstile is not configured
 - **WHEN** a visitor opens `/s/pongal-2027`
 - **THEN** the browser makes no request to any other website
 
-#### Scenario: Page weight
+### Scenario: Page weight
 - **WHEN** the survey form HTML and stylesheet are measured
-- **THEN** the hero image is at most 250 KB and no external image request is made
+- **THEN** no `pongal-hero*.webp` image is loaded and no external image request is made

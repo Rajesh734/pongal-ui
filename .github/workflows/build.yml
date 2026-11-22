@@ -82,4 +82,10 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker push --all-tags "$IMAGE"
-          echo "Pushed \`$IMAGE:sha-${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
+          tag="sha-${GITHUB_SHA::7}"
+          echo "## Deployable image" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "\`IMAGE_REF=$IMAGE:$tag\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`image_tag=$tag\`" >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          echo "Copy the image reference for inspection or use the image tag as the manual Deploy workflow input." >> "$GITHUB_STEP_SUMMARY"

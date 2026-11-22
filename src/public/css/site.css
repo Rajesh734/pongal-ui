@@ -27,6 +27,19 @@ body {
   color: var(--ink);
   background: var(--cream);
 }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("/public/img/logo.svg"), url("/public/img/logo.svg"), url("/public/img/logo.svg"), url("/public/img/logo.svg"), url("/public/img/logo.svg");
+  background-repeat: no-repeat;
+  background-size: 4rem auto, 5rem auto, 3.5rem auto, 4.5rem auto, 3rem auto;
+  background-position: 8% 12%, 78% 8%, 44% 43%, 16% 78%, 88% 82%;
+  opacity: 0.02;
+}
+body > * { position: relative; z-index: 1; }
 [lang="ta"] { font-family: "Noto Sans Tamil", "Tamil Sangam MN", "Tamil MN", Latha, system-ui, sans-serif; }
 [hidden] { display: none !important; }
 a { color: var(--kumkum-dark); overflow-wrap: anywhere; }
@@ -40,8 +53,19 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
 
 /* Site header */
 .site-header { background: var(--maroon); color: #fff; }
-.site-header__inner { display: flex; align-items: center; gap: 0.75rem; max-width: 60rem; margin: 0 auto; padding: 0.5rem 0.75rem; }
-.site-logo { display: block; height: 56px; width: auto; border-radius: 0.5rem; background: var(--turmeric); }
+.site-header__inner { display: flex; align-items: center; justify-content: center; gap: 0.65rem; min-height: 72px; max-width: 60rem; margin: 0 auto; padding: 0.5rem 0.75rem; text-align: center; }
+.site-logo {
+  display: block;
+  width: 2rem;
+  height: 3rem;
+  object-fit: contain;
+  border-radius: 0;
+  background: transparent;
+  filter: brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+  opacity: 0.9;
+}
+.site-logo--end { transform: scaleX(-1); }
+.site-header__identity { min-width: 0; }
 .site-name { margin: 0; font-weight: 700; font-size: 1.0625rem; letter-spacing: 0.02em; }
 .site-location { margin: 0; font-size: 0.8125rem; color: var(--turmeric-soft); }
 
@@ -51,11 +75,10 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
   text-align: center;
   background: var(--cream);
   overflow: hidden;
+  border-bottom: 1px solid rgba(109, 27, 27, 0.18);
 }
-.festive-hero { position: relative; width: 100%; aspect-ratio: 2 / 3; overflow: hidden; }
-.festive-hero__image { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 58%; }
-.festive-hero__overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 8% 1rem 0; pointer-events: none; }
-.festive-hero__overlay::before { content: ""; position: absolute; inset: 5% 7%; border: 1px solid rgba(109, 27, 27, 0.35); pointer-events: none; }
+.festive-banner__inner { max-width: 62rem; margin: 0 auto; padding: 0.75rem 0.5rem 0; }
+.festive-banner__copy { position: relative; z-index: 1; }
 .festive-banner__thoranam .art, .festive-banner__kolam .art { display: block; width: 100%; height: 36px; }
 .festive-banner__thoranam .art { height: 40px; }
 .festive-banner__scene {
@@ -65,6 +88,7 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
   gap: 0.25rem;
   max-width: 60rem;
   margin: 0 auto;
+  min-height: 7.5rem;
   padding: 0.25rem 0.5rem 0;
 }
 .scene-side { display: flex; align-items: flex-end; gap: 0.125rem; }
@@ -77,8 +101,8 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
 .art-figures { width: 3.6rem; }
 .art-uriyadi { width: 2.4rem; align-self: flex-start; }
 .art-bull { width: 4.2rem; }
-.festive-banner__greeting { margin: 0.5rem 0 0; font-size: 1.375rem; font-weight: 700; color: var(--maroon); line-height: 1.4; text-shadow: 0 1px 2px rgba(255,255,255,0.9); }
-.festive-banner__event { margin: 0.25rem 0 0; font-size: 1rem; font-weight: 700; color: var(--maroon); letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 1px 2px rgba(255,255,255,0.9); }
+.festive-banner__greeting { margin: 0.15rem 0 0; font-size: 1.25rem; font-weight: 700; color: var(--maroon); line-height: 1.3; text-shadow: 0 1px 2px rgba(255,255,255,0.9); }
+.festive-banner__event { margin: 0.15rem 0 0; font-size: 0.875rem; font-weight: 700; color: var(--maroon); letter-spacing: 0.08em; text-transform: uppercase; text-shadow: 0 1px 2px rgba(255,255,255,0.9); }
 
 /* Artwork colours */
 .f-tur { fill: var(--turmeric); }
@@ -111,6 +135,19 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
   padding: 1.25rem 1rem 1rem;
   margin: 0 0 1rem;
   box-shadow: 0 1px 3px rgba(109, 27, 27, 0.08);
+  overflow: hidden;
+}
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("/public/img/logo.svg"), url("/public/img/logo.svg"), url("/public/img/logo.svg"), url("/public/img/logo.svg");
+  background-repeat: no-repeat;
+  background-size: 3.5rem auto, 4.5rem auto, 3rem auto, 4rem auto;
+  background-position: 8% 16%, 76% 10%, 28% 78%, 90% 72%;
+  opacity: 0.032;
 }
 .card::before {
   content: "";
@@ -119,7 +156,9 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
   height: 6px;
   border-radius: 0 0 6px 6px;
   background: repeating-linear-gradient(90deg, var(--turmeric) 0 14px, var(--kumkum) 14px 20px, var(--cane) 20px 34px, var(--kumkum) 34px 40px);
+  z-index: 2;
 }
+.card > * { position: relative; z-index: 1; }
 .card__title { margin: 0 0 1rem; font-size: 1.1875rem; display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; align-items: baseline; }
 .card__sep { color: var(--turmeric); }
 .card > h1 { margin-top: 0.25rem; }
@@ -170,6 +209,13 @@ input:focus, textarea:focus, button:focus, a:focus, .error-summary:focus { outli
 .summary dd { margin: 0; overflow-wrap: anywhere; }
 .link-box { padding: 0.75rem; background: #fff; border: 1px dashed var(--clay); border-radius: 0.5rem; }
 
+/* Admin summary */
+.admin-banner { margin: 0 0 1.25rem; padding: 0.625rem 0.75rem; background: var(--turmeric-soft); border-left: 4px solid var(--marigold); }
+.admin-events { display: grid; gap: 1rem; }
+.admin-event { padding-top: 0.5rem; border-top: 1px solid #ecd9a8; }
+.admin-event h2 { margin-top: 0; }
+.admin-summary { margin-bottom: 1rem; }
+
 /* Honeypot: off-screen for people, still in the form for bots. */
 .hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 
@@ -180,10 +226,9 @@ input:focus, textarea:focus, button:focus, a:focus, .error-summary:focus { outli
   .counts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .count input { max-width: none; }
   .button.primary { width: auto; min-width: 12rem; }
-  .festive-hero { aspect-ratio: 4 / 3; }
-  .festive-hero__image { object-position: 50% 55%; }
-  .festive-hero__overlay { padding-top: 6%; }
-  .festive-banner__greeting { font-size: 1.75rem; }
+  .festive-banner__inner { padding-top: 1rem; }
+  .festive-banner__scene { min-height: 10rem; }
+  .festive-banner__greeting { font-size: 1.625rem; }
   .scene-center { width: 9rem; height: 10rem; }
   .art-sun { width: 7.5rem; }
   .art-pot { width: 7rem; }
@@ -200,10 +245,8 @@ input:focus, textarea:focus, button:focus, a:focus, .error-summary:focus { outli
   .site-header__inner { padding: 0.5rem 1.5rem; }
   h1 { font-size: 1.875rem; }
   .card { padding: 1.75rem 2rem 1.5rem; margin-bottom: 1.5rem; }
-  .festive-hero { aspect-ratio: 16 / 6.8; }
-  .festive-hero__image { object-position: 50% 54%; }
-  .festive-hero__overlay { padding-top: 4%; }
-  .festive-banner__greeting { font-size: 2.125rem; }
+  .festive-banner__scene { min-height: 11rem; }
+  .festive-banner__greeting { font-size: 1.875rem; }
   .scene-center { width: 11rem; height: 12.5rem; }
   .art-sun { width: 9.5rem; }
   .art-pot { width: 8.5rem; }

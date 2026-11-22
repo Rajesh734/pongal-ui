@@ -7,11 +7,12 @@ The survey pages work but look plain, and on a laptop they show one narrow colum
 ## What Changes
 
 - **Add** a site header with the organization name "Eastcoast Tamil Community", the location "New Hampshire, USA", and the organization's logo once the organizers add the logo file (transparent PNG or SVG).
-- **Add** a realistic Pongal hero image for events that choose the theme, using the provided celebration artwork with the Pongal pot, sugarcane, flowers, kolam and decorated bulls. The page renders the correct event greeting and year as HTML over the image so 2027 content is not baked into a 2026 asset.
+- **Add** two optimized artwork-only Pongal hero images derived from the supplied realistic banner: a desktop hero and a portrait mobile hero. The page renders the correct Tamil greeting and year as HTML over the images.
 - **Add** subtle motion (steam and the pot boiling over) that stops when the visitor's device asks for reduced motion.
 - **Change** the survey form into four section cards with bilingual headings (Tamil and English): About you, Attending, Food & helping, Finish.
 - **Change** the layout for wider screens: a wider centred page, section cards, and option lists in two to four columns, without losing the phone layout.
 - Apply the theme to the survey form, edit form, confirmation page and survey messages (not open, closed, invalid link).
+- **Change** the Build workflow summary to print the full GHCR image reference and the exact `image_tag=sha-<commit>` value required by the manual Deploy workflow.
 
 ## Capabilities
 
@@ -27,12 +28,12 @@ _None._ The survey's fields, messages and validation do not change. Phone usabil
 
 - Survey views (`src/modules/survey/views/`), new artwork partials, `src/public/css/site.css`.
 - Event config gets an optional `theme` setting; `config/events/pongal-2027.yaml` sets `theme: pongal`.
-- No new dependencies, no external fonts or images, no database changes, no CSP changes.
+- No runtime image-generation dependency, no external image URLs, no database changes, no CSP changes. The supplied artwork is optimized offline and checked into `src/public/img/`.
 - Depends on change `pongal-2027-interest-survey`.
 
 ## Out of Scope
 
-- Other photos, web fonts, dark mode, and a theme editor.
+- Other photos, web fonts, dark mode, a theme editor, and runtime calls to an image-generation API.
 - Admin pages (change `admin-csv-export`).
 - Changing any survey question, message or validation rule.
 - The logo file itself (added later by the organizers).

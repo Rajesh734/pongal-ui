@@ -1,11 +1,14 @@
   <header class="site-header">
     <div class="site-header__inner">
 <% if (it.site.logo) { %>
-      <img class="site-logo" src="<%= it.site.logo %>" alt="<%= it.site.name %> logo" width="26" height="56">
+    <img class="site-logo" src="<%= it.site.logo %>" alt="<%= it.site.name %> logo" width="26" height="56">
 <% } %>
-      <div>
+    <div class="site-header__identity">
         <p class="site-name"><%= it.site.name %></p>
         <p class="site-location"><%= it.site.location %></p>
       </div>
+  <% if (it.site.logo) { %>
+    <img class="site-logo site-logo--end" src="<%= it.site.logo %>" alt="" aria-hidden="true" width="26" height="56">
+  <% } %>
     </div>
   </header>
