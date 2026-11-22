@@ -58,6 +58,20 @@ describe('event config', () => {
     const bad = source.replace('- { code: photography, label: "Photography" }', '- { code: cleanup, label: "Photography" }');
     expect(() => parseEventConfig(bad, FILE)).toThrow(`${FILE}: duplicate code 'cleanup' in survey.volunteer_roles`);
   });
+
+  it('reads the Pongal theme', () => {
+    expect(parseEventConfig(source, FILE).config.theme).toBe('pongal');
+  });
+
+  it('Event without a theme', () => {
+    const { config } = parseEventConfig(source.replace('theme: pongal\n', ''), FILE);
+    expect(config.theme).toBeUndefined();
+  });
+
+  it('Invalid theme in config', () => {
+    const bad = source.replace('theme: pongal', 'theme: diwali');
+    expect(() => parseEventConfig(bad, FILE)).toThrow(new RegExp(`^${FILE}: theme `));
+  });
 });
 
 describe('surveyState', () => {

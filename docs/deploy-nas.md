@@ -55,6 +55,8 @@ read -rs TS && printf '%s' "$TS" > secrets/turnstile_secret && unset TS
 
 # SMTP password (app password from the mail provider)
 read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
+# No SMTP yet? Create the file empty instead; the app treats it as not set:
+# : > secrets/smtp_pass
 
 chown -R 1000:1000 secrets data
 chmod 700 data
@@ -80,6 +82,67 @@ SMTP_FROM="Pongal 2027 <no-reply@example.org>"
 CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com
 CF_ACCESS_AUD=<Access application AUD tag>
 ```
+
+Leave the four `SMTP_*` values empty (and `secrets/smtp_pass` empty) to run without email: families still see their edit link on screen. Email is only sent when all four values and the password are set.
+
+### Optional: Gmail for edit-link emails
+
+The site can email each family its edit link through a Gmail account (about 500 recipients a day; at most 3 emails per address per hour).
+
+1. Sign in to the Gmail account that should send the emails. Turn on **2-Step Verification** (Google Account > Security > 2-Step Verification). App passwords need it.
+2. Create an app password: Google Account > Security > **App passwords** (or <https://myaccount.google.com/apppasswords>). Name it `pongal-ui <environment>`. Google shows a 16-character password once.
+3. On the NAS, in the environment folder, store it as the SMTP secret (spaces in the password don't matter, type it as shown):
+
+   ```sh
+   chmod 600 secrets/smtp_pass
+   read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
+   chmod 400 secrets/smtp_pass && chown 1000:1000 secrets/smtp_pass
+   ```
+
+4. In `.env` set:
+
+   ```sh
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=<the gmail address>
+   SMTP_FROM="Pongal 2027 <the gmail address>"
+   ```
+
+5. Restart: `IMAGE_TAG=$(cat .deployed-tag) docker compose up -d --force-recreate`. Submit the survey once with your own email and check the message "Your Pongal 2027 survey link" arrives and the confirmation page says "We've also emailed this link to ...".
+
+To try it locally first: `SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=... SMTP_FROM=... SMTP_PASS_FILE=<file with the app password> DB_DRIVER=pglite EDIT_TOKEN_KEY=dev npm start`, then submit at `http://localhost:3000/s/pongal-2027`.
+
+If sending fails the response is still saved; the log shows `Edit-link email failed` with the SMTP response code only. To stop emails, revoke the app password in the Google Account (and empty `secrets/smtp_pass`).
+
+### Turnstile troubleshooting
+
+The site key (`TURNSTILE_SITE_KEY` in `.env`) and the secret (`secrets/turnstile_secret`) must come from the **same** widget: Cloudflare dashboard > Turnstile > your widget > Settings. The widget's hostnames must include the survey hostname.
+
+| What you see | Cause | Fix |
+|---|---|---|
+| "For testing only. If seen, report to site owner." under the widget | `TURNSTILE_SITE_KEY` is a Cloudflare test key (`1x0000…`, `2x0000…`, `3x0000…`) | Put the real site key in `.env` |
+| "Our spam check isn't set up correctly. Please contact the organizers." | Cloudflare rejected the secret (it is wrong, empty, or from another widget) | Store the secret of the same widget with `read -rs` (section 10) |
+| "We couldn't reach our spam check. Please try again in a minute." | The NAS could not reach Cloudflare within 5 seconds, or Cloudflare had an error | Check the NAS internet connection; it usually clears by itself |
+| "We couldn't confirm you're not a robot. Please try again." | The visitor's widget token was missing, expired or reused | Nothing to fix; the visitor submits again |
+
+After changing either key, restart and check the log (it shows only Cloudflare error codes, never the keys):
+
+```sh
+cd /volume1/platform/docker/prod/community-site     # or non-prod
+IMAGE_TAG=$(cat .deployed-tag) docker compose up -d --force-recreate
+docker logs community-site-prod 2>&1 | grep Turnstile    # community-site-non-prod in non-prod
+```
+
+Lines to look for: `Turnstile is using Cloudflare test keys` (replace the keys), `Turnstile rejected the secret key (invalid-input-secret)` (wrong secret), `Turnstile verification unreachable` (network), `Turnstile is not configured` (a key is missing). No output means the keys are set and accepted so far.
+
+### Upgrading a folder from the Docker-network setup
+
+Earlier versions joined the app to the cloudflared Docker network. If an environment folder was set up that way, the next deploy fails with `required variable HOST_PORT is missing a value`. Before deploying:
+
+1. In that folder's `.env`, add `HOST_PORT` (`3101` non-prod, `3100` prod) and delete the `CLOUDFLARE_NETWORK=` line.
+2. Check the file: `IMAGE_TAG=check docker compose config -q` in the folder prints nothing.
+3. Point the environment's Tunnel public hostname to `http://localhost:<HOST_PORT>` (see [Cloudflare Tunnel routes](#cloudflare-tunnel-routes)).
+4. Re-run the failed Deploy run in GitHub Actions.
 
 ## 4. Deploy access: SSH key, host key and GHCR login
 
@@ -229,7 +292,23 @@ Rotating `edit_token_key` invalidates every edit link already sent to families. 
 
 Rotate the GitHub-side access secrets (SSH key, Tailscale OAuth client) by creating the new one, updating the GitHub Environment secret, running a deploy, then deleting the old one.
 
-## 11. Stop
+## 11. Remove a survey response
+
+Until the admin pages exist, an organizer can remove one family's response (for example a test entry). It is a soft delete: the response and its history stay in the database, and the family's edit link stops working.
+
+The database allows only one process at a time, so stop the site first (a few seconds of downtime; the Tunnel shows an error page meanwhile):
+
+```sh
+cd /volume1/platform/docker/prod/community-site     # or non-prod
+export IMAGE_TAG=$(cat .deployed-tag)
+docker compose stop community-site
+docker compose run --rm community-site npm run survey:remove -- pongal-2027 <email>
+docker compose start community-site
+```
+
+It prints `Removed response <id> from 'pongal-2027'.`, or `No active response for that email` if there is nothing to remove. Never run it with `docker compose exec` while the site is running.
+
+## 12. Stop
 
 ```sh
 cd /volume1/platform/docker/prod/community-site     # or non-prod

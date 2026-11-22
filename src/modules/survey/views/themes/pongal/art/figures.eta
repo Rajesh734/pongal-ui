@@ -1,0 +1,27 @@
+<svg class="art art-figures" data-motif="traditional-dress" viewBox="0 0 120 165" aria-hidden="true" focusable="false">
+  <g class="man">
+    <path class="f-hair" d="M22 20 q0 -12 12 -12 q12 0 12 12 q-4 -6 -12 -6 q-8 0 -12 6Z"/>
+    <circle class="f-skin" cx="34" cy="22" r="10"/>
+    <path class="f-skin" d="M14 44 L8 82 L13 83 L22 50Z M54 44 L60 82 L55 83 L46 50Z"/>
+    <path class="f-white s-mar" stroke-width="1.2" d="M20 36 Q34 30 48 36 L52 84 L16 84Z"/>
+    <path class="f-tur" d="M22 36 L30 34 L50 82 L44 84Z"/>
+    <path class="f-white s-mar" stroke-width="1.2" d="M16 84 H52 L54 152 H14Z"/>
+    <path class="f-tur" d="M14 144 H54 V150 H14Z"/>
+    <path class="f-skin" d="M18 152 h10 v6 h-12Z M40 152 h10 l2 6 h-12Z"/>
+  </g>
+  <g class="woman">
+    <circle class="f-hair" cx="98" cy="18" r="6"/>
+    <circle class="f-white" cx="102" cy="13" r="1.6"/>
+    <circle class="f-white" cx="104" cy="18" r="1.6"/>
+    <circle class="f-white" cx="102" cy="23" r="1.6"/>
+    <path class="f-hair" d="M76 22 q0 -12 12 -12 q12 0 12 12Z"/>
+    <circle class="f-skin" cx="88" cy="24" r="10"/>
+    <circle class="f-kum" cx="88" cy="20" r="1.4"/>
+    <path class="f-skin" d="M70 48 L66 84 L71 85 L78 52Z M106 48 L110 84 L105 85 L98 52Z"/>
+    <path class="f-cane" d="M74 38 Q88 32 102 38 L104 58 H72Z"/>
+    <path class="f-kum" d="M72 58 H104 L112 154 H64Z"/>
+    <path class="f-tur" d="M64 146 H112 L113 154 H63Z"/>
+    <path class="f-kum-dark" d="M74 38 L102 38 L104 60 L84 92 L76 60Z"/>
+    <path class="s-tur" fill="none" stroke-width="2" d="M102 40 L84 92"/>
+  </g>
+</svg>

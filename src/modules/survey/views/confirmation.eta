@@ -1,0 +1,25 @@
+<% layout('./layout', { title: it.title, enhance: true, importMap: it.importMap }) %>
+    <section class="card">
+    <h1><%= it.heading %></h1>
+
+    <h2>Your answers</h2>
+    <dl class="summary">
+<% for (const [label, value] of it.rows) { %>
+      <dt><%= label %></dt>
+      <dd><%= value %></dd>
+<% } %>
+    </dl>
+    </section>
+
+    <section class="card edit-link" x-data="copyLink">
+      <h2>Your private edit link</h2>
+      <p><%= it.saveLink %></p>
+      <p class="link-box"><a id="edit-link" href="<%= it.editPath %>"><%= it.link %></a></p>
+      <button type="button" class="button" data-link="<%= it.link %>" hidden @click="copy">Copy link</button>
+      <p class="muted" id="copy-status" role="status"></p>
+<% if (it.emailedNote) { %>
+      <p><%= it.emailedNote %></p>
+<% } %>
+    </section>
+
+    <p><a href="<%= it.editPath %>">Change your answers</a></p>

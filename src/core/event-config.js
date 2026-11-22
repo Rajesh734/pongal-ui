@@ -20,6 +20,7 @@ export const eventConfigSchema = z
     slug: z.string().regex(/^[a-z0-9-]+$/, 'must use lower-case letters, digits and -'),
     name: z.string().min(1),
     timezone: z.string().min(1),
+    theme: z.enum(['pongal']).optional(),
     days: z
       .array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'must look like 2027-01-16'), label: z.string().min(1) }))
       .min(1),

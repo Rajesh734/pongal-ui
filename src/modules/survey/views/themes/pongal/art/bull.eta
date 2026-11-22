@@ -1,0 +1,12 @@
+<svg class="art art-bull" data-motif="jallikattu-bull" viewBox="0 0 150 110" aria-hidden="true" focusable="false">
+  <path class="s-mar" fill="none" stroke-width="3" stroke-linecap="round" d="M26 48 Q12 56 16 80"/>
+  <circle class="f-mar" cx="16" cy="82" r="4"/>
+  <path class="f-mar" d="M26 50 Q28 34 48 34 Q54 22 66 26 Q72 30 74 34 L104 36 Q114 34 118 40 L124 38 Q134 34 140 42 L136 56 Q132 64 122 60 L116 66 L116 100 L107 100 L106 74 L82 74 L80 100 L71 100 L69 74 Q52 76 44 68 L42 100 L33 100 L33 66 Q24 60 26 50Z"/>
+  <path class="f-kum" d="M50 34 Q56 28 66 28 L70 42 Q58 46 50 34Z"/>
+  <path class="s-tur" fill="none" stroke-width="2" d="M54 34 l4 6 l4 -6 l4 6"/>
+  <path class="s-horn" fill="none" stroke-width="5" stroke-linecap="round" d="M124 38 Q118 22 128 12"/>
+  <path class="s-horn" fill="none" stroke-width="5" stroke-linecap="round" d="M132 38 Q138 24 148 20"/>
+  <path class="s-kum" fill="none" stroke-width="2" d="M120 24 l7 2 M136 28 l6 -3"/>
+  <circle class="f-cream" cx="130" cy="46" r="2"/>
+  <path class="s-tur" fill="none" stroke-width="2.5" d="M114 58 Q120 70 128 60"/>
+</svg>

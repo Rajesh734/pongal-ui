@@ -1,0 +1,689 @@
+{
+  "id": "be90d869-f30d-415c-9c25-e349e67aff59",
+  "prevId": "247b86e3-7bc0-409e-9845-4e13cfb87f50",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.change_history": {
+      "name": "change_history",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "change_history_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor": {
+          "name": "actor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "change_history_entity_idx": {
+          "name": "change_history_entity_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "change_history_action_check": {
+          "name": "change_history_action_check",
+          "value": "\"change_history\".\"action\" in ('create','update','delete','restore','anonymize')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.event_days": {
+      "name": "event_days",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day_date": {
+          "name": "day_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort": {
+          "name": "sort",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_days_event_id_events_id_fk": {
+          "name": "event_days_event_id_events_id_fk",
+          "tableFrom": "event_days",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "event_days_event_id_day_date_unique": {
+          "name": "event_days_event_id_day_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id",
+            "day_date"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "survey_opens_at": {
+          "name": "survey_opens_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "survey_closes_at": {
+          "name": "survey_closes_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config_snapshot": {
+          "name": "config_snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config_hash": {
+          "name": "config_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "events_slug_unique": {
+          "name": "events_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "events_slug_check": {
+          "name": "events_slug_check",
+          "value": "\"events\".\"slug\" ~ '^[a-z0-9-]+$'"
+        },
+        "events_survey_window_check": {
+          "name": "events_survey_window_check",
+          "value": "\"events\".\"survey_closes_at\" > \"events\".\"survey_opens_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.households": {
+      "name": "households",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mobile_e164": {
+          "name": "mobile_e164",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "anonymized_at": {
+          "name": "anonymized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "households_email_unique": {
+          "name": "households_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "households_mobile_e164_check": {
+          "name": "households_mobile_e164_check",
+          "value": "\"households\".\"mobile_e164\" ~ '^\\+[1-9][0-9]{7,14}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.response_days": {
+      "name": "response_days",
+      "schema": "",
+      "columns": {
+        "response_id": {
+          "name": "response_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_day_id": {
+          "name": "event_day_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "likelihood": {
+          "name": "likelihood",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "response_days_response_id_survey_responses_id_fk": {
+          "name": "response_days_response_id_survey_responses_id_fk",
+          "tableFrom": "response_days",
+          "tableTo": "survey_responses",
+          "columnsFrom": [
+            "response_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "response_days_event_day_id_event_days_id_fk": {
+          "name": "response_days_event_day_id_event_days_id_fk",
+          "tableFrom": "response_days",
+          "tableTo": "event_days",
+          "columnsFrom": [
+            "event_day_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "response_days_response_id_event_day_id_pk": {
+          "name": "response_days_response_id_event_day_id_pk",
+          "columns": [
+            "response_id",
+            "event_day_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "response_days_likelihood_check": {
+          "name": "response_days_likelihood_check",
+          "value": "\"response_days\".\"likelihood\" in ('definitely','likely','maybe')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.response_headcounts": {
+      "name": "response_headcounts",
+      "schema": "",
+      "columns": {
+        "response_id": {
+          "name": "response_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "band_code": {
+          "name": "band_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "response_headcounts_response_id_survey_responses_id_fk": {
+          "name": "response_headcounts_response_id_survey_responses_id_fk",
+          "tableFrom": "response_headcounts",
+          "tableTo": "survey_responses",
+          "columnsFrom": [
+            "response_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "response_headcounts_response_id_band_code_pk": {
+          "name": "response_headcounts_response_id_band_code_pk",
+          "columns": [
+            "response_id",
+            "band_code"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "response_headcounts_count_check": {
+          "name": "response_headcounts_count_check",
+          "value": "\"response_headcounts\".\"count\" between 0 and 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.response_volunteer_roles": {
+      "name": "response_volunteer_roles",
+      "schema": "",
+      "columns": {
+        "response_id": {
+          "name": "response_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_code": {
+          "name": "role_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "response_volunteer_roles_response_id_survey_responses_id_fk": {
+          "name": "response_volunteer_roles_response_id_survey_responses_id_fk",
+          "tableFrom": "response_volunteer_roles",
+          "tableTo": "survey_responses",
+          "columnsFrom": [
+            "response_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "response_volunteer_roles_response_id_role_code_pk": {
+          "name": "response_volunteer_roles_response_id_role_code_pk",
+          "columns": [
+            "response_id",
+            "role_code"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.survey_responses": {
+      "name": "survey_responses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "household_id": {
+          "name": "household_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "food_code": {
+          "name": "food_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cultural_code": {
+          "name": "cultural_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contribution_code": {
+          "name": "contribution_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comments": {
+          "name": "comments",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "consent_at": {
+          "name": "consent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edit_token_hash": {
+          "name": "edit_token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edit_token_issued_at": {
+          "name": "edit_token_issued_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ux_response_active": {
+          "name": "ux_response_active",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"survey_responses\".\"deleted_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "survey_responses_event_id_events_id_fk": {
+          "name": "survey_responses_event_id_events_id_fk",
+          "tableFrom": "survey_responses",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "survey_responses_household_id_households_id_fk": {
+          "name": "survey_responses_household_id_households_id_fk",
+          "tableFrom": "survey_responses",
+          "tableTo": "households",
+          "columnsFrom": [
+            "household_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "survey_responses_edit_token_hash_unique": {
+          "name": "survey_responses_edit_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "edit_token_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "survey_responses_comments_check": {
+          "name": "survey_responses_comments_check",
+          "value": "char_length(\"survey_responses\".\"comments\") <= 2000"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -23,6 +23,27 @@ export function testConfig(overrides = {}) {
   };
 }
 
+/** A valid Pongal 2027 survey form as the browser would post it. */
+export function validForm(overrides = {}) {
+  return {
+    name: 'Priya',
+    email: 'priya@example.com',
+    mobile: '',
+    days: ['2027-01-16'],
+    'likelihood_2027-01-16': 'definitely',
+    headcount_adult_11_plus: '2',
+    headcount_kids_5_10: '1',
+    headcount_kids_under_5: '0',
+    food: 'veg',
+    roles: [],
+    cultural: 'maybe',
+    contribution: 'usd_20',
+    comments: '',
+    consent: 'yes',
+    ...overrides,
+  };
+}
+
 export function captureStream() {
   const chunks = [];
   const stream = new Writable({

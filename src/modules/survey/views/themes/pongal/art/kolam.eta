@@ -1,0 +1,13 @@
+<svg class="art art-kolam" data-motif="kolam" viewBox="0 0 480 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="kolam-tile" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle class="f-mar" cx="9" cy="9" r="1.8"/>
+      <circle class="f-mar" cx="27" cy="9" r="1.8"/>
+      <circle class="f-mar" cx="9" cy="27" r="1.8"/>
+      <circle class="f-mar" cx="27" cy="27" r="1.8"/>
+      <circle class="f-kum" cx="18" cy="18" r="2.4"/>
+      <path class="s-mar" fill="none" stroke-width="1.6" d="M18 2 C30 2 34 6 34 18 C34 30 30 34 18 34 C6 34 2 30 2 18 C2 6 6 2 18 2Z M18 8 L28 18 L18 28 L8 18Z"/>
+    </pattern>
+  </defs>
+  <rect width="480" height="36" fill="url(#kolam-tile)"/>
+</svg>

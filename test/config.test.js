@@ -37,6 +37,23 @@ describe('config', () => {
     );
   });
 
+  it('Empty secret file for an optional setting', async () => {
+    for (const contents of ['', '\n']) {
+      const config = loadConfig({ ...BASE, SMTP_PASS_FILE: secretFile(contents) });
+      expect(config.SMTP_PASS).toBeUndefined();
+      const logs = captureStream();
+      const app = await buildApp(config, { database: { ping: async () => {} }, logStream: logs.stream, logLevel: 'info' });
+      await app.close();
+      expect(logs.text()).toContain('SMTP_PASS: [not set]');
+    }
+  });
+
+  it('Empty secret file for a required setting', () => {
+    expect(() => loadConfig({ DB_DRIVER: 'pglite', EDIT_TOKEN_KEY_FILE: secretFile('') })).toThrow(
+      'Missing required setting: EDIT_TOKEN_KEY (set EDIT_TOKEN_KEY or EDIT_TOKEN_KEY_FILE)',
+    );
+  });
+
   it('Invalid port', () => {
     expect(() => loadConfig({ ...BASE, PORT: 'abc' })).toThrow(
       'Invalid setting PORT: must be a whole number between 1 and 65535',

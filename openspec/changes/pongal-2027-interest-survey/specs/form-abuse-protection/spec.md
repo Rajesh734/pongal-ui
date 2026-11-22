@@ -19,8 +19,24 @@ When both the Turnstile site key and secret are configured, every public form SH
 - **THEN** nothing is saved, the form is shown again with the entered values kept, and the top says "We couldn't confirm you're not a robot. Please try again."
 
 #### Scenario: Cloudflare unreachable
-- **WHEN** the verification request to Cloudflare times out after 5 seconds
-- **THEN** nothing is saved and the top says "We couldn't reach our spam check. Please try again in a minute."
+- **WHEN** the verification request to Cloudflare times out after 5 seconds, fails with a network error, or gets an HTTP 5xx answer
+- **THEN** nothing is saved, the top says "We couldn't reach our spam check. Please try again in a minute.", and the log records "Turnstile verification unreachable" with the HTTP status or error name only
+
+### Requirement: Turnstile misconfiguration is reported
+When Cloudflare rejects the server's secret key (an HTTP 4xx answer, or error code `invalid-input-secret` or `missing-input-secret`), the system MUST NOT save anything, MUST show the visitor a message that does not blame them, and MUST log the Cloudflare error codes so the organizer can fix the keys. Logs of any failed check MUST contain only the HTTP status and Cloudflare error codes, never the secret, the widget token or the visitor's IP.
+
+#### Scenario: Rejected secret key
+- **GIVEN** `TURNSTILE_SECRET` does not belong to the widget of `TURNSTILE_SITE_KEY`
+- **WHEN** a form is submitted and Cloudflare answers `400` with error code `invalid-input-secret`
+- **THEN** nothing is saved, the form is shown again with the entered values kept, the top says "Our spam check isn't set up correctly. Please contact the organizers.", and the log records "Turnstile rejected the secret key (invalid-input-secret) - check TURNSTILE_SECRET and TURNSTILE_SITE_KEY" at error level
+
+### Requirement: Test keys warned at startup
+When the Turnstile site key or secret is one of Cloudflare's published test keys (matching `^[123]x0{20,}[A-F]{2}$`), the system SHALL log a warning at startup.
+
+#### Scenario: Test site key
+- **GIVEN** `TURNSTILE_SITE_KEY` is `1x00000000000000000000AA`
+- **WHEN** the server starts
+- **THEN** it logs "Turnstile is using Cloudflare test keys - the widget shows 'For testing only' and does not protect the form."
 
 ### Requirement: Turnstile optional until configured
 When the Turnstile site key or secret is missing, the system SHALL serve forms without the widget, skip the check, and log a warning at startup.

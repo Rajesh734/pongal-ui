@@ -48,11 +48,13 @@ const NAMES = Object.keys(base.shape);
 function resolve(env, name) {
   const file = env[`${name}_FILE`];
   if (file) {
+    let value;
     try {
-      return readFileSync(file, 'utf8').trim();
+      value = readFileSync(file, 'utf8').trim();
     } catch {
       throw new ConfigError(`Cannot read secret file for ${name}: ${file}`);
     }
+    return value === '' ? undefined : value;
   }
   const value = env[name];
   return value === undefined || value === '' ? undefined : value;

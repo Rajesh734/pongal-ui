@@ -1,0 +1,5 @@
+<svg class="art art-sun" data-motif="sun" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <circle class="s-tur rays" cx="50" cy="50" r="38" fill="none" stroke-width="12" stroke-dasharray="7 7.92"/>
+  <circle class="f-tur" cx="50" cy="50" r="26"/>
+  <circle class="f-sun-core" cx="50" cy="50" r="19"/>
+</svg>

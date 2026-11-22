@@ -7,7 +7,7 @@ Defines how the community-site server starts, loads configuration and secrets, r
 ## ADDED Requirements
 
 ### Requirement: Configuration from environment and secret files
-The system SHALL read each setting from its environment variable, and for secret settings SHALL also accept `<NAME>_FILE` pointing to a file whose trimmed contents are the value. When both are set, the `_FILE` value MUST win.
+The system SHALL read each setting from its environment variable, and for secret settings SHALL also accept `<NAME>_FILE` pointing to a file whose trimmed contents are the value. When both are set, the `_FILE` value MUST win. An empty value, whether an empty variable or a secret file that is empty after trimming, MUST be treated as not set.
 
 #### Scenario: Secret read from file
 - **GIVEN** `EDIT_TOKEN_KEY_FILE=/run/secrets/edit_token_key` and that file contains `k3y-value\n`
@@ -23,6 +23,16 @@ The system SHALL read each setting from its environment variable, and for secret
 - **GIVEN** `EDIT_TOKEN_KEY_FILE=/run/secrets/missing` and no such file exists
 - **WHEN** the server starts
 - **THEN** startup fails with the message "Cannot read secret file for EDIT_TOKEN_KEY: /run/secrets/missing"
+
+#### Scenario: Empty secret file for an optional setting
+- **GIVEN** `SMTP_PASS_FILE=/run/secrets/smtp_pass` and that file is empty or contains only `\n`
+- **WHEN** the server starts
+- **THEN** it starts normally and logs `SMTP_PASS: [not set]`
+
+#### Scenario: Empty secret file for a required setting
+- **GIVEN** `EDIT_TOKEN_KEY_FILE=/run/secrets/edit_token_key` and that file is empty
+- **WHEN** the server starts
+- **THEN** it exits with code 1 and logs "Missing required setting: EDIT_TOKEN_KEY (set EDIT_TOKEN_KEY or EDIT_TOKEN_KEY_FILE)"
 
 ### Requirement: Refuse to start without required settings
 The system MUST stop at startup with a non-zero exit code when a required setting is missing or invalid, naming the setting but never printing any secret value.
