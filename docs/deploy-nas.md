@@ -1,6 +1,6 @@
-# Runbook: deploy community-site on the Synology NAS
+ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data/ present # Runbook: deploy community-site on the Synology NAS
 
-The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel (`cloudflared`) container. It publishes no port on the NAS. Data lives in an embedded PGlite database in `data/pglite`, with nightly backups in `data/backups`.
+The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` production): the tunnel reaches it through `localhost`, LAN devices cannot. Data lives in an embedded PGlite database in `data/pglite`, with nightly backups in `data/backups`.
 
 How releases flow:
 
@@ -18,7 +18,7 @@ Sections 1-6 are one-time setup. Run NAS commands over SSH as an administrator (
   non-prod/community-site/      owner: deploy user
   prod/community-site/          owner: deploy user
     compose.yaml                copied from the repository by every deploy
-    .env                        APP_ENV, network name, non-secret settings
+    .env                        APP_ENV, HOST_PORT, non-secret settings
     .deployed-tag               image tag currently running (written by deploys)
     secrets/                    owner 1000, mode 711; files mode 400
       edit_token_key
@@ -67,17 +67,11 @@ If a secret file is unreadable, the container stops with `Cannot read secret fil
 
 ## 3. Non-secret settings (`.env`, per environment)
 
-Find the Docker network of the existing `cloudflared` container:
-
-```sh
-docker inspect cloudflared --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}'
-```
-
 Create `.env` in each environment folder (owner `<deploy-user>`). Do not add any secret here.
 
 ```sh
 APP_ENV=prod                      # non-prod in the non-prod folder; names the container community-site-<APP_ENV>
-CLOUDFLARE_NETWORK=<network name from the command above>
+HOST_PORT=3100                    # 3101 in the non-prod folder; bound to 127.0.0.1 only
 TURNSTILE_SITE_KEY=<public site key from Cloudflare Turnstile>
 SMTP_HOST=<smtp host>
 SMTP_PORT=587
@@ -155,12 +149,12 @@ Delete the local `nas_known_hosts` file afterwards. Keep the private key only in
 
 ### Cloudflare Tunnel routes
 
-In Cloudflare Zero Trust > Networks > Tunnels > (your tunnel) > Public Hostname, add one per environment:
+In Cloudflare Zero Trust > Networks > Tunnels > (the `cloudflare-pranphoto` tunnel) > Public Hostname, add one per environment. Existing routes for Synology Photos stay as they are.
 
 | Public hostname | Service |
 |---|---|
-| non-prod hostname | `HTTP` `community-site-non-prod:3000` |
-| production hostname | `HTTP` `community-site-prod:3000` |
+| non-prod hostname | `HTTP` `localhost:3101` |
+| production hostname | `HTTP` `localhost:3100` |
 
 ### First deploy and checks
 
@@ -169,7 +163,8 @@ Push to `main` (or run **Deploy** by hand for `non-prod` with the `sha-` tag fro
 ```sh
 curl https://<hostname>/healthz          # {"status":"ok","db":"ok"}
 curl -i https://<hostname>/weather       # 404 page
-curl --max-time 5 http://<nas-ip>:3000/healthz   # from the LAN: must fail to connect
+curl --max-time 5 http://<nas-ip>:3101/healthz   # from another LAN device: must fail to connect
+curl http://localhost:3101/healthz              # on the NAS itself: {"status":"ok","db":"ok"}
 ```
 
 On the NAS, check that no secret appears in the container settings (only `*_FILE` paths for `EDIT_TOKEN_KEY`, `TURNSTILE_SECRET` and `SMTP_PASS`):

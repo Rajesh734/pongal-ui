@@ -7,7 +7,9 @@ services:
     image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG:?set IMAGE_TAG}
     container_name: community-site-${APP_ENV}
     restart: unless-stopped
-    # No `ports:` on purpose: the site is reachable only through the Cloudflare Tunnel container.
+    # Loopback only: the host-networked cloudflared reaches it via localhost; LAN clients cannot.
+    ports:
+      - "127.0.0.1:${HOST_PORT:?set HOST_PORT in .env}:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -30,14 +32,6 @@ services:
       - edit_token_key
       - turnstile_secret
       - smtp_pass
-    networks:
-      - cloudflare
-
-networks:
-  cloudflare:
-    external: true
-    # Set CLOUDFLARE_NETWORK in .env to the network of the existing cloudflared container.
-    name: ${CLOUDFLARE_NETWORK:-cloudflare}
 
 secrets:
   edit_token_key:
