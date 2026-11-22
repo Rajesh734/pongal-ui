@@ -1,0 +1,52 @@
+schema: spec-driven
+
+context: |
+  Purpose: Long-lived community website self-hosted on a Synology DS920+ (Celeron J4125, 4 GB RAM)
+  via Docker (Container Manager), exposed through Cloudflare Tunnel. First app: Pongal 2027 Interest
+  Survey; next: Event Registration (cultural entries, confirmation email); later: more lightweight
+  community apps. Data is kept permanently for year-over-year history.
+
+  Tech stack:
+  - Node.js 20 LTS, JavaScript ES modules, no front-end build step
+  - Fastify 5 (+ @fastify/view with Eta, static, formbody, helmet, rate-limit)
+  - PostgreSQL 16 in production (independent Docker stack on the NAS, shared by all apps);
+    PGlite (embedded Postgres, in-memory or local folder) for development and tests, selected by DB_DRIVER
+  - Drizzle ORM + drizzle-kit SQL migrations (the same migrations run on both drivers)
+  - Zod validation: ONE shared schema module used by both the server and the browser
+  - Server-rendered HTML + Alpine.js progressive enhancement; plain mobile-first CSS
+  - exceljs (XLSX export), nodemailer (email, registration phase), Vitest (tests)
+  - Cloudflare Access (admin auth), Cloudflare Turnstile (bot protection)
+
+  Architecture: src/{server.js, config.js, db/, core/, modules/<feature>/{routes,service,repo,schema,messages,views}, shared/, public/}
+  config/events/*.yaml defines events (seeded into the DB). Each future app = new modules/<feature>.
+
+  Data rules: never hard-delete respondent data (use deleted_at); every create/update/delete writes
+  change_history with a JSON snapshot; timestamps are timestamptz stored in UTC and shown in the event
+  timezone (default America/New_York); emails are lowercased (citext); phones are stored as E.164.
+
+  Domain: Household = family identified by email, reused across years. Event = one year's celebration
+  (slug pongal-2027) with candidate event days. Survey = non-binding interest. Registration = binding.
+  Volunteer roles: Culturals, Food Serving, Stage Setup, Hosting, Decoration, Registration Desk,
+  Photography, Cleanup. Weighted headcount = people x likelihood weight (Definitely 1.0, Likely 0.75, Maybe 0.4).
+
+  Constraints: mobile-first (most users come from WhatsApp links on phones, 360px width); no online
+  payments; personal data visible only to admins; the Postgres port is never exposed to LAN or internet;
+  the app uses a least-privilege DB role; secrets come only from env vars.
+
+rules:
+  proposal:
+    - Include Why, What Changes, Capabilities (new/modified), Impact, and an explicit Out of Scope list
+    - Keep it to about one page; target releasing within one working day
+  specs:
+    - Every requirement uses SHALL or MUST and has at least one scenario
+    - Scenarios use concrete example values and quote the exact user-facing message text
+    - Specs describe behaviour only; technology choices belong in design.md
+    - Cover the error and edge cases for every input, not only the happy path
+  design:
+    - Record each decision with the alternatives considered and why they were rejected
+    - Include the data model (tables, keys, constraints)
+    - All SQL must work on both PGlite and PostgreSQL
+  tasks:
+    - Group tasks under numbered headings; each task is small (under 1 hour) and verifiable
+    - Every spec scenario maps to at least one test task
+    - End with deployment and verification tasks

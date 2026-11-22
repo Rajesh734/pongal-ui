@@ -1,0 +1,40 @@
+# Times are local to `timezone`. Option codes are stored in survey rows: never rename a code, only its label.
+slug: pongal-2027
+name: Pongal 2027
+timezone: America/New_York
+days:
+  - { date: 2027-01-16, label: "Saturday, Jan 16" }
+  - { date: 2027-01-17, label: "Sunday, Jan 17" }
+survey:
+  opens_at: 2026-11-20T20:00
+  closes_at: 2026-11-24T23:59
+  closed_message: "The Pongal 2027 interest survey is now closed. Thank you for your interest! Organizers will share next steps soon."
+  likelihood_weights: { definitely: 1.0, likely: 0.75, maybe: 0.4 }
+  headcount_bands:
+    - { code: adult_11_plus, label: "Adults & kids 11+", min: 1, max: 10, price_tier: full }
+    - { code: kids_5_10, label: "Kids 5-10", min: 0, max: 10, price_tier: reduced }
+    - { code: kids_under_5, label: "Kids under 5", min: 0, max: 10, price_tier: free }
+  max_total_people: 15
+  food_options:
+    - { code: veg, label: "Veg" }
+    - { code: non_veg, label: "Non-veg" }
+    - { code: either, label: "Either is fine" }
+  volunteer_roles:
+    - { code: culturals, label: "Culturals" }
+    - { code: food_serving, label: "Food Serving" }
+    - { code: stage_setup, label: "Stage Setup" }
+    - { code: hosting, label: "Hosting" }
+    - { code: decoration, label: "Decoration" }
+    - { code: registration_desk, label: "Registration Desk" }
+    - { code: photography, label: "Photography" }
+    - { code: cleanup, label: "Cleanup" }
+  cultural_options:
+    - { code: "yes", label: "Yes" }
+    - { code: maybe, label: "Maybe" }
+    - { code: "no", label: "No" }
+  contribution_options:
+    - { code: usd_15, label: "$15" }
+    - { code: usd_20, label: "$20" }
+    - { code: usd_25, label: "$25" }
+    - { code: flexible, label: "Flexible" }
+  comments_max: 500

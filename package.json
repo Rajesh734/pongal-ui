@@ -1,0 +1,34 @@
+{
+  "name": "community-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Community website: Pongal 2027 interest survey and future community apps",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch --env-file=.env src/server.js",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.17",
+    "@fastify/formbody": "^9.0.2",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/rate-limit": "^11.3.0",
+    "@fastify/static": "^10.1.12",
+    "@fastify/view": "^12.0.1",
+    "drizzle-orm": "^0.45.4",
+    "eta": "^4.6.0",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11",
+    "vitest": "^4.1.12"
+  }
+}

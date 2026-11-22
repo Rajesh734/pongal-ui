@@ -1,0 +1,48 @@
+# Secrets come from files in ./secrets (never from .env) so they stay out of `docker inspect`.
+# Non-secret values and APP_ENV come from .env next to this file; IMAGE_TAG is set by scripts/nas-deploy.sh.
+name: community-site-${APP_ENV:?set APP_ENV in .env}
+
+services:
+  community-site:
+    image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG:?set IMAGE_TAG}
+    container_name: community-site-${APP_ENV}
+    restart: unless-stopped
+    # No `ports:` on purpose: the site is reachable only through the Cloudflare Tunnel container.
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_DRIVER: pglite
+      PGLITE_DATA_DIR: /data/pglite
+      BACKUP_DIR: /data/backups
+      EDIT_TOKEN_KEY_FILE: /run/secrets/edit_token_key
+      TURNSTILE_SECRET_FILE: /run/secrets/turnstile_secret
+      SMTP_PASS_FILE: /run/secrets/smtp_pass
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+    volumes:
+      - ./data:/data
+    secrets:
+      - edit_token_key
+      - turnstile_secret
+      - smtp_pass
+    networks:
+      - cloudflare
+
+networks:
+  cloudflare:
+    external: true
+    # Set CLOUDFLARE_NETWORK in .env to the network of the existing cloudflared container.
+    name: ${CLOUDFLARE_NETWORK:-cloudflare}
+
+secrets:
+  edit_token_key:
+    file: ./secrets/edit_token_key
+  turnstile_secret:
+    file: ./secrets/turnstile_secret
+  smtp_pass:
+    file: ./secrets/smtp_pass
