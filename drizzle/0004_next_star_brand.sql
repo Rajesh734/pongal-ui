@@ -1,0 +1,6 @@
+ALTER TABLE "registration_attendees" DROP CONSTRAINT "registration_attendees_volunteer_check";--> statement-breakpoint
+ALTER TABLE "registration_performances" DROP CONSTRAINT "registration_performances_duration_check";--> statement-breakpoint
+ALTER TABLE "registration_attendees" ALTER COLUMN "willing_to_volunteer" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "registration_attendees" ALTER COLUMN "willing_to_volunteer" SET DATA TYPE boolean USING CASE WHEN "willing_to_volunteer" = 'yes' THEN true ELSE false END;--> statement-breakpoint
+ALTER TABLE "registration_attendees" ALTER COLUMN "willing_to_volunteer" SET DEFAULT false;--> statement-breakpoint
+ALTER TABLE "registration_performances" ADD CONSTRAINT "registration_performances_duration_check" CHECK (("registration_performances"."participant_count" = 1 and "registration_performances"."duration_minutes" between 1 and 4) or ("registration_performances"."participant_count" between 2 and 4 and "registration_performances"."duration_minutes" between 1 and 5) or ("registration_performances"."participant_count" >= 5 and "registration_performances"."duration_minutes" between 1 and 7));

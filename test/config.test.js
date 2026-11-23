@@ -61,6 +61,11 @@ describe('config', () => {
     expect(() => loadConfig({ ...BASE, PORT: '70000' })).toThrow('Invalid setting PORT');
   });
 
+  it('Public application URL must use HTTP or HTTPS', () => {
+    expect(loadConfig({ ...BASE, APP_BASE_URL: 'https://portal.example.org' }).APP_BASE_URL).toBe('https://portal.example.org');
+    expect(() => loadConfig({ ...BASE, APP_BASE_URL: 'ftp://portal.example.org' })).toThrow('Invalid setting APP_BASE_URL');
+  });
+
   it('applies defaults', () => {
     const config = loadConfig(BASE);
     expect(config.PORT).toBe(3000);
@@ -85,5 +90,34 @@ describe('config', () => {
     expect(logs.text()).toContain('SMTP_PASS: [not set]');
     expect(logs.text()).not.toContain('0x4AAA-real-secret');
     expect(logs.text()).not.toContain('plain-key');
+  });
+
+  it('PostgreSQL 18 NAS settings with password from a secret file', () => {
+    const config = loadConfig({
+      ...BASE,
+      DB_DRIVER: 'postgres',
+      DATABASE_HOST: 'kalanjiyam',
+      DATABASE_PORT: '5432',
+      DATABASE_NAME: 'samugam',
+      DATABASE_USER: 'samugam_app',
+      DATABASE_PASSWORD_FILE: secretFile('not-a-real-password'),
+    });
+    expect(config).toMatchObject({
+      DB_DRIVER: 'postgres',
+      DATABASE_HOST: 'kalanjiyam',
+      DATABASE_PORT: 5432,
+      DATABASE_NAME: 'samugam',
+      DATABASE_USER: 'samugam_app',
+      DATABASE_PASSWORD: 'not-a-real-password',
+    });
+  });
+
+  it('Production requires a dedicated QR pass encryption key', () => {
+    expect(() => loadConfig({ ...BASE, NODE_ENV: 'production' })).toThrow(
+      'Missing required setting: QR_PASS_ENCRYPTION_KEY (set QR_PASS_ENCRYPTION_KEY or QR_PASS_ENCRYPTION_KEY_FILE)',
+    );
+    const key = Buffer.alloc(32, 9).toString('base64');
+    const config = loadConfig({ ...BASE, NODE_ENV: 'production', QR_PASS_ENCRYPTION_KEY: key });
+    expect(config.QR_PASS_ENCRYPTION_KEY).toBe(key);
   });
 });

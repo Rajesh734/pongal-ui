@@ -1,0 +1,47 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <nav class="admin-nav" aria-label="Organizer activities">
+        <a href="/admin/registrations">Registrations</a>
+        <a href="/admin/payments">Payments</a>
+        <a href="/admin/volunteers" aria-current="page">Volunteers</a>
+        <a href="/admin/check-in-access">Check-in Access</a>
+      </nav>
+      <h1>Volunteers</h1>
+      <form method="get" action="/admin/volunteers" class="admin-filters">
+        <label for="event">Event</label>
+        <select id="event" name="event">
+<% it.events.forEach((event) => { %>
+          <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
+<% }) %>
+        </select>
+        <label for="role">Volunteer role</label>
+        <select id="role" name="role">
+          <option value="all" <%= it.roleFilter === 'all' ? 'selected' : '' %>>All roles</option>
+<% it.roleOptions.forEach((role) => { %>
+          <option value="<%= role.code %>" <%= it.roleFilter === role.code ? 'selected' : '' %>><%= role.label %></option>
+<% }) %>
+        </select>
+        <button class="button" type="submit">Filter</button>
+      </form>
+<% if (!it.rows.length) { %>
+      <p class="muted">No attendees have volunteered yet.</p>
+<% } else { %>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Attendee</th><th>Age band</th><th>Household contact</th><th>Email</th><th>Roles</th></tr></thead>
+          <tbody>
+<% it.rows.forEach((row) => { %>
+            <tr>
+              <td><%= row.attendeeName %></td>
+              <td><%= row.ageBand %></td>
+              <td><%= row.householdName %></td>
+              <td><%= row.householdEmail %></td>
+              <td><%= row.roles.join(', ') %></td>
+            </tr>
+<% }) %>
+          </tbody>
+        </table>
+      </div>
+<% } %>
+    </section>

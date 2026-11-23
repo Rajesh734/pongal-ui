@@ -1,7 +1,16 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
       <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <h1>Survey responses</h1>
+                  <nav class="admin-nav" aria-label="Organizer activities">
+                        <a href="/admin/registrations">Registrations</a>
+                        <a href="/admin/payments">Payments</a>
+                        <a href="/admin/volunteers">Volunteers</a>
+                        <a href="/admin/check-in-access">Check-in Access</a>
+                  </nav>
+                  <h1>Organizer dashboard</h1>
+                  <p>Manage Pongal registrations, payment review, volunteers, and event check-in access.</p>
+                  <details>
+                        <summary>Legacy interest survey</summary>
 <% if (!it.rows.length) { %>
       <p class="muted">No surveys have been configured.</p>
 <% } else { %>
@@ -19,4 +28,5 @@
 <% }) %>
       </div>
 <% } %>
+      </details>
     </section>

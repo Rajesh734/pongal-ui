@@ -31,6 +31,18 @@ describe('event config', () => {
     expect(config.survey.cultural_options.map((o) => o.code)).toEqual(['yes', 'maybe', 'no']);
     expect(config.survey.max_total_people).toBe(15);
     expect(config.survey.comments_max).toBe(500);
+    expect(config.registration.prices_cents).toEqual({ age_11_plus: 3500, age_5_to_10: 2500, under_5: 0 });
+    expect(config.registration.performance_duration_minutes).toEqual({ solo: 4, group_2_to_4: 5, group_5_plus: 7 });
+    expect(config.registration.max_performances).toBe(2);
+    expect(config.registration.zelle_phone).toBe('+16039700000');
+    expect(config.registration.volunteer_roles.map((role) => role.code)).toEqual([
+      'culturals', 'food_serving_setup', 'stage_setup', 'compere_hosting', 'decoration', 'registration_desk', 'photography', 'cleanup', 'music_dj',
+    ]);
+  });
+
+  it('rejects duplicate registration volunteer role codes', () => {
+    const bad = source.replace('- { code: music_dj, label: "Music/DJ" }', '- { code: cleanup, label: "Music/DJ" }');
+    expect(() => parseEventConfig(bad, FILE)).toThrow(`${FILE}: duplicate code 'cleanup' in registration.volunteer_roles`);
   });
 
   it('Close before open', () => {

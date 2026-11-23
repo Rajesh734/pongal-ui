@@ -12,6 +12,8 @@ const options = z.array(option).min(1);
 const localDateTime = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'must look like 2026-11-20T20:00');
 const weight = z.number().min(0).max(1);
 const count = z.number().int().min(0);
+const positiveInt = z.number().int().positive();
+const e164Phone = z.string().regex(/^\+[1-9][0-9]{7,14}$/, 'must be an E.164 phone number');
 
 const CODE_LISTS = ['headcount_bands', 'food_options', 'volunteer_roles', 'cultural_options', 'contribution_options'];
 
@@ -39,6 +41,21 @@ export const eventConfigSchema = z
       contribution_options: options,
       comments_max: z.number().int().positive(),
     }),
+    registration: z.object({
+      prices_cents: z.object({
+        age_11_plus: count,
+        age_5_to_10: count,
+        under_5: count,
+      }),
+      max_performances: positiveInt,
+      performance_duration_minutes: z.object({
+        solo: positiveInt,
+        group_2_to_4: positiveInt,
+        group_5_plus: positiveInt,
+      }),
+      zelle_phone: e164Phone,
+      volunteer_roles: options,
+    }).optional(),
   })
   .superRefine((cfg, ctx) => {
     if (!isValidTimeZone(cfg.timezone)) {
@@ -55,6 +72,13 @@ export const eventConfigSchema = z
       for (const { code: c } of cfg.survey[list]) {
         if (seen.has(c)) ctx.addIssue({ code: 'custom', path: [], message: `duplicate code '${c}' in survey.${list}` });
         seen.add(c);
+      }
+    }
+    if (cfg.registration) {
+      const seen = new Set();
+      for (const { code: roleCode } of cfg.registration.volunteer_roles) {
+        if (seen.has(roleCode)) ctx.addIssue({ code: 'custom', path: [], message: `duplicate code '${roleCode}' in registration.volunteer_roles` });
+        seen.add(roleCode);
       }
     }
   });

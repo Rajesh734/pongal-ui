@@ -60,7 +60,80 @@ describe('migrations', () => {
   it('Fresh database', async () => {
     const database = await migratedMemoryDb();
     open.push(database);
-    expect(await tableNames(database.db)).toEqual(expect.arrayContaining(['change_history', 'event_days', 'events', 'households']));
+    expect(await tableNames(database.db)).toEqual(
+      expect.arrayContaining([
+        'change_history',
+        'check_in_permissions',
+        'email_verification_tokens',
+        'event_days',
+        'events',
+        'household_auth',
+        'household_sessions',
+        'households',
+        'registration_access_tokens',
+        'registration_attendees',
+        'registration_check_ins',
+        'registration_passes',
+        'registration_payments',
+        'registration_performances',
+        'registration_volunteer_roles',
+        'registrations',
+      ]),
+    );
+  });
+
+  it('Portal token uniqueness and foreign keys', async () => {
+    const database = await migratedMemoryDb();
+    open.push(database);
+    const household = await database.db.execute(sql`
+      insert into households (email, name)
+      values ('priya@example.com', 'Priya')
+      returning id
+    `);
+    const householdId = household.rows[0].id;
+    const event = await database.db.execute(sql`
+      insert into events (slug, name, timezone, survey_opens_at, survey_closes_at, config_snapshot, config_hash)
+      values ('pongal-2027', 'Pongal 2027', 'America/New_York', now(), now() + interval '1 day', '{}', 'test')
+      returning id
+    `);
+    const eventId = event.rows[0].id;
+    await database.db.execute(sql`
+      insert into household_auth (household_id, google_sub, email_verified_at)
+      values (${householdId}, 'google-priya', now())
+    `);
+    const registration = await database.db.execute(sql`
+      insert into registrations (event_id, household_id, contact_name, contact_email, contact_mobile_e164, total_cents)
+      values (${eventId}, ${householdId}, 'Priya', 'priya@example.com', '+16035550123', 3500)
+      returning id
+    `);
+    const registrationId = registration.rows[0].id;
+
+    await database.db.execute(sql`
+      insert into household_sessions (household_id, token_hash, expires_at)
+      values (${householdId}, 'session-hash', now() + interval '1 day')
+    `);
+    await expect(database.db.execute(sql`
+      insert into household_sessions (household_id, token_hash, expires_at)
+      values (${householdId}, 'session-hash', now() + interval '1 day')
+    `)).rejects.toThrow();
+
+    await database.db.execute(sql`
+      insert into email_verification_tokens (household_id, token_hash, expires_at)
+      values (${householdId}, 'verification-hash', now() + interval '1 day')
+    `);
+    await database.db.execute(sql`
+      insert into registration_access_tokens (registration_id, token_hash, expires_at)
+      values (${registrationId}, 'guest-hash', now() + interval '1 day')
+    `);
+    await database.db.execute(sql`
+      insert into registration_passes (registration_id, token_hash, encrypted_token, encryption_iv, auth_tag)
+      values (${registrationId}, 'pass-hash', 'encrypted', 'iv', 'tag')
+    `);
+
+    await expect(database.db.execute(sql`
+      insert into registration_access_tokens (registration_id, token_hash, expires_at)
+      values ('00000000-0000-0000-0000-000000000001', 'orphan-hash', now() + interval '1 day')
+    `)).rejects.toThrow();
   });
 
   it('Restart with no new migrations', async () => {

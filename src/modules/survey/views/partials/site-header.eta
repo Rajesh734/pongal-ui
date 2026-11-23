@@ -1,5 +1,16 @@
   <header class="site-header">
     <div class="site-header__inner">
+      <details class="mobile-menu">
+        <summary aria-label="Open navigation menu">
+          <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+        </summary>
+        <nav class="mobile-menu__panel" aria-label="Mobile navigation">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/register">Register</a>
+        </nav>
+      </details>
+      <div class="site-brand">
 <% if (it.site.logo) { %>
     <img class="site-logo" src="<%= it.site.logo %>" alt="<%= it.site.name %> logo" width="26" height="56">
 <% } %>
@@ -10,5 +21,28 @@
   <% if (it.site.logo) { %>
     <img class="site-logo site-logo--end" src="<%= it.site.logo %>" alt="" aria-hidden="true" width="26" height="56">
   <% } %>
+      </div>
+      <details class="account-menu">
+        <summary aria-label="Account menu"><span class="account-icon" aria-hidden="true"></span></summary>
+        <div class="account-menu__panel">
+<% if (it.siteAccount) { %>
+          <p class="account-menu__name"><%= it.siteAccount.name %></p>
+          <a href="/account/profile">Profile</a>
+          <a href="/account/registrations">My Registrations</a>
+          <form method="post" action="/api/auth/logout">
+            <input type="hidden" name="_csrf" value="<%= it.navCsrfToken ?? '' %>">
+            <button type="submit">Log out</button>
+          </form>
+<% } else { %>
+          <a href="/login">Sign in</a>
+          <a href="/signup">Sign up</a>
+<% } %>
+        </div>
+      </details>
     </div>
+    <nav class="site-nav site-nav--desktop" aria-label="Main navigation">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/register">Register</a>
+      </nav>
   </header>

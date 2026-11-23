@@ -1,0 +1,148 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card registration-card">
+      <h1><%= it.title %></h1>
+<% if (it.message) { %>
+      <p class="notice" role="alert"><%= it.message %></p>
+<% } %>
+      <p>Register your household for <%= it.event.name %>. Payment is completed separately by Zelle.</p>
+      <form method="post" action="<%= it.formAction ?? '/register' %>" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="contactEmail">Email</label>
+          <input id="contactEmail" name="contactEmail" type="email" autocomplete="email" required maxlength="254" value="<%= it.values.contactEmail ?? '' %>">
+          <% if (it.errors.contactEmail) { %><p class="field-error" role="alert"><%= it.errors.contactEmail %></p><% } %>
+        </fieldset>
+        <fieldset class="field">
+          <label for="mobileCountryCode">Mobile country code</label>
+          <select id="mobileCountryCode" name="mobileCountryCode">
+            <% it.phoneCountries.forEach((country) => { %>
+            <option value="<%= country.code %>" <%= (it.values.mobileCountryCode ?? '+1') === country.code ? 'selected' : '' %>><%= country.label %></option>
+            <% }) %>
+          </select>
+          <label for="mobileOtherCountryCode" data-other-code-label hidden>Other calling code</label>
+          <input id="mobileOtherCountryCode" name="mobileOtherCountryCode" type="tel" placeholder="+34" value="<%= it.values.mobileOtherCountryCode ?? '' %>" hidden>
+          <label for="mobileNumber">Mobile number</label>
+          <input id="mobileNumber" name="mobileNumber" type="tel" autocomplete="tel-national" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" required placeholder="6039700000" value="<%= it.values.mobileNumber ?? '' %>">
+          <% if (it.errors.mobileE164) { %><p class="field-error" role="alert"><%= it.errors.mobileE164 %></p><% } %>
+        </fieldset>
+        <fieldset class="field">
+          <label for="whatsappCountryCode">WhatsApp country code (if different)</label>
+          <select id="whatsappCountryCode" name="whatsappCountryCode">
+            <% it.phoneCountries.forEach((country) => { %>
+            <option value="<%= country.code %>" <%= (it.values.whatsappCountryCode ?? '+1') === country.code ? 'selected' : '' %>><%= country.label %></option>
+            <% }) %>
+          </select>
+          <label for="whatsappOtherCountryCode" data-other-code-label hidden>Other WhatsApp calling code</label>
+          <input id="whatsappOtherCountryCode" name="whatsappOtherCountryCode" type="tel" placeholder="+34" value="<%= it.values.whatsappOtherCountryCode ?? '' %>" hidden>
+          <label for="whatsappNumber">WhatsApp number, if different (optional)</label>
+          <input id="whatsappNumber" name="whatsappNumber" type="tel" autocomplete="tel-national" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" placeholder="9876543210" value="<%= it.values.whatsappNumber ?? '' %>">
+          <% if (it.errors.whatsappE164) { %><p class="field-error" role="alert"><%= it.errors.whatsappE164 %></p><% } %>
+        </fieldset>
+        <label class="choice consent"><input id="whatsappConsent" type="checkbox" name="whatsappConsent" value="yes" <%= it.values.whatsappConsent ? 'checked' : '' %>> <span>Organizers may contact me on WhatsApp about this event.</span></label>
+        <% if (it.errors.whatsappConsent) { %><p class="field-error" role="alert"><%= it.errors.whatsappConsent %></p><% } %>
+        <h2>Attendees</h2>
+        <p>The first attendee is the primary contact. Enter each person’s name once.</p>
+        <% if (it.errors.attendees) { %><p class="field-error" role="alert"><%= it.errors.attendees %></p><% } %>
+        <div id="attendee-list" aria-live="polite">
+<% (it.values.attendees ?? [{ name: '', ageBand: '11_plus', willingToVolunteer: false, volunteerRoles: [] }]).forEach((attendee, index) => { %>
+          <fieldset class="field attendee-row">
+            <legend><%= index === 0 ? 'Primary contact and attendee 1' : `Attendee ${index + 1}` %></legend>
+            <label for="attendeeName<%= index %>"><%= index === 0 ? 'Full name' : 'Attendee name' %></label>
+            <input id="attendeeName<%= index %>" name="attendeeName" autocomplete="<%= index === 0 ? 'name' : 'off' %>" required minlength="<%= index === 0 ? 2 : 1 %>" maxlength="150" value="<%= attendee.name ?? '' %>">
+            <% if (index === 0 && it.errors.contactName) { %><p class="field-error" role="alert"><%= it.errors.contactName %></p><% } %>
+            <label for="attendeeAgeBand<%= index %>">Age on event date</label>
+            <% if (index === 0) { %>
+            <input type="hidden" name="attendeeAgeBand" value="11_plus">
+            <p class="primary-age-band">Adult primary contact (age 11+) - $<%= it.prices.age_11_plus / 100 %></p>
+            <% } else { %>
+            <select id="attendeeAgeBand<%= index %>" name="attendeeAgeBand" required>
+              <option value="11_plus" <%= attendee.ageBand === '11_plus' ? 'selected' : '' %>>Age 11+ - $<%= it.prices.age_11_plus / 100 %></option>
+              <option value="5_to_10" <%= attendee.ageBand === '5_to_10' ? 'selected' : '' %>>Age 5-10 - $<%= it.prices.age_5_to_10 / 100 %></option>
+              <option value="under_5" <%= attendee.ageBand === 'under_5' ? 'selected' : '' %>>Under 5 - Free</option>
+            </select>
+            <% } %>
+            <div class="attendee-volunteer">
+            <label class="choice"><input type="checkbox" name="attendeeWilling_<%= index %>" value="yes" <%= attendee.willingToVolunteer ? 'checked' : '' %>> <span>Willing to volunteer</span></label>
+            <p>Volunteer roles for this attendee:</p>
+            <% it.roles.forEach((role) => { %>
+            <label class="choice"><input type="checkbox" name="attendeeRoles_<%= index %>" value="<%= role.code %>" <%= (attendee.volunteerRoles ?? []).includes(role.code) ? 'checked' : '' %>> <span><%= role.label %></span></label>
+            <% }) %>
+            </div>
+            <button class="button remove-attendee" type="button" data-remove-attendee <%= index === 0 ? 'disabled' : '' %>>Remove attendee</button>
+          </fieldset>
+<% }) %>
+        </div>
+        <template id="attendee-template">
+          <fieldset class="field attendee-row">
+            <legend>Attendee __INDEX_DISPLAY__</legend>
+            <label for="attendeeName__INDEX__">Name</label>
+            <input id="attendeeName__INDEX__" name="attendeeName" required minlength="1" maxlength="150">
+            <label for="attendeeAgeBand__INDEX__">Age on event date</label>
+            <select id="attendeeAgeBand__INDEX__" name="attendeeAgeBand" required>
+              <option value="11_plus">Age 11+ - $<%= it.prices.age_11_plus / 100 %></option>
+              <option value="5_to_10" selected>Age 5-10 - $<%= it.prices.age_5_to_10 / 100 %></option>
+              <option value="under_5">Under 5 - Free</option>
+            </select>
+            <div class="attendee-volunteer">
+            <label class="choice"><input type="checkbox" name="attendeeWilling___INDEX__" value="yes"> <span>Willing to volunteer</span></label>
+            <p>Volunteer roles for this attendee:</p>
+            <% it.roles.forEach((role) => { %>
+            <label class="choice"><input type="checkbox" name="attendeeRoles___INDEX__" value="<%= role.code %>"> <span><%= role.label %></span></label>
+            <% }) %>
+            </div>
+            <button class="button remove-attendee" type="button" data-remove-attendee>Remove attendee</button>
+          </fieldset>
+        </template>
+        <button class="button" type="button" id="add-attendee">Add attendee</button>
+        <h2>Cultural performances (optional)</h2>
+        <p>Up to <%= it.event.configSnapshot.registration.max_performances %> performances. Maximum duration: <%= it.event.configSnapshot.registration.performance_duration_minutes.solo %> minutes solo, <%= it.event.configSnapshot.registration.performance_duration_minutes.group_2_to_4 %> minutes for 2-4 performers, and <%= it.event.configSnapshot.registration.performance_duration_minutes.group_5_plus %> minutes for 5 or more.</p>
+        <p>For more than two performances, <a href="/about">contact the organizers</a>.</p>
+      <% if (it.errors.performances) { %>
+        <p class="error" role="alert"><%= it.errors.performances %></p>
+      <% } %>
+        <div id="performance-list" data-max-performances="<%= it.event.configSnapshot.registration.max_performances %>">
+      <% ((it.values.performances?.length ? it.values.performances : [{}])).forEach((performance, index) => { %>
+          <fieldset class="field performance-row">
+            <legend>Performance <%= index + 1 %></legend>
+            <label for="performanceTitle<%= index %>">Performance name or type</label>
+            <input id="performanceTitle<%= index %>" name="performanceTitle" maxlength="150" value="<%= performance.title ?? '' %>">
+            <label for="performanceParticipants<%= index %>">Performer or group name</label>
+            <input id="performanceParticipants<%= index %>" name="performanceParticipants" maxlength="150" value="<%= performance.participantNames ?? '' %>">
+            <label for="performanceParticipantCount<%= index %>">Number of performers</label>
+            <input id="performanceParticipantCount<%= index %>" name="performanceParticipantCount" type="number" min="1" max="100" step="1" inputmode="numeric" value="<%= performance.participantCount ?? '' %>">
+            <label for="performanceDuration<%= index %>">Duration in minutes</label>
+            <input id="performanceDuration<%= index %>" name="performanceDuration" type="number" min="1" max="7" step="1" inputmode="numeric" value="<%= performance.durationMinutes ?? '' %>">
+            <label for="performanceIntroduction<%= index %>">Short introduction for the compere</label>
+            <textarea id="performanceIntroduction<%= index %>" name="performanceIntroduction" maxlength="500"><%= performance.compereIntroduction ?? '' %></textarea>
+            <button class="button remove-performance" type="button" data-remove-performance>Remove performance</button>
+          </fieldset>
+      <% }) %>
+        </div>
+        <template id="performance-template">
+          <fieldset class="field performance-row">
+            <legend>Performance __INDEX_DISPLAY__</legend>
+            <label for="performanceTitle__INDEX__">Performance name or type</label>
+            <input id="performanceTitle__INDEX__" name="performanceTitle" maxlength="150">
+            <label for="performanceParticipants__INDEX__">Performer or group name</label>
+            <input id="performanceParticipants__INDEX__" name="performanceParticipants" maxlength="150">
+            <label for="performanceParticipantCount__INDEX__">Number of performers</label>
+            <input id="performanceParticipantCount__INDEX__" name="performanceParticipantCount" type="number" min="1" max="100" step="1" inputmode="numeric">
+            <label for="performanceDuration__INDEX__">Duration in minutes</label>
+            <input id="performanceDuration__INDEX__" name="performanceDuration" type="number" min="1" max="7" step="1" inputmode="numeric">
+            <label for="performanceIntroduction__INDEX__">Short introduction for the compere</label>
+            <textarea id="performanceIntroduction__INDEX__" name="performanceIntroduction" maxlength="500"></textarea>
+            <button class="button remove-performance" type="button" data-remove-performance>Remove performance</button>
+          </fieldset>
+        </template>
+        <button class="button" type="button" id="add-performance">Add performance</button>
+        <div id="family-summary" class="family-summary" data-prices="<%= JSON.stringify(it.prices) %>" aria-live="polite">
+          <h2>Family total</h2>
+          <p>Age 11+: <output data-count="age_11_plus"><%= it.ageBandSummary.age_11_plus.count %></output> x $<%= it.prices.age_11_plus / 100 %> = <output data-subtotal="age_11_plus">$<%= (it.ageBandSummary.age_11_plus.subtotalCents / 100).toFixed(2) %></output></p>
+          <p>Age 5-10: <output data-count="age_5_to_10"><%= it.ageBandSummary.age_5_to_10.count %></output> x $<%= it.prices.age_5_to_10 / 100 %> = <output data-subtotal="age_5_to_10">$<%= (it.ageBandSummary.age_5_to_10.subtotalCents / 100).toFixed(2) %></output></p>
+          <p>Under 5: <output data-count="under_5"><%= it.ageBandSummary.under_5.count %></output> x Free = <output data-subtotal="under_5">$<%= (it.ageBandSummary.under_5.subtotalCents / 100).toFixed(2) %></output></p>
+          <p><strong>Total due: <output id="family-total">$<%= (it.initialTotalCents / 100).toFixed(2) %></output></strong></p>
+        </div>
+        <button class="button primary" type="submit">Continue to payment instructions</button>
+      </form>
+    </section>
+    <script type="module" src="/public/js/registration.js"></script>

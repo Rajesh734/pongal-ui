@@ -51,19 +51,21 @@ describe('window states', () => {
     expect(res.body).toContain('Sorry, we couldn&#39;t find that page.');
   });
 
-  it('One current survey', async () => {
+  it('Root renders the portal Home page', async () => {
     ctx = await surveyApp();
-    const res = await ctx.app.inject('/');
-    expect(res.statusCode).toBe(302);
-    expect(res.headers.location).toBe('/s/pongal-2027');
+    const { statusCode, body } = await ctx.app.inject('/');
+    expect(statusCode).toBe(200);
+    expect(body).toContain('<h1>Pongal 2027</h1>');
+    expect(body).toContain('href="/register">Register your household</a>');
   });
 
-  it('No open surveys', async () => {
+  it('Home remains available after the interest survey closes', async () => {
     ctx = await surveyApp();
     ctx.clock.now = NOV_25;
-    const res = await ctx.app.inject('/');
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toContain('There are no open surveys right now. Please check back later.');
+    const { statusCode, body } = await ctx.app.inject('/');
+    expect(statusCode).toBe(200);
+    expect(body).toContain('<h1>Pongal 2027</h1>');
+    expect(body).not.toContain('There are no open surveys right now.');
   });
 });
 

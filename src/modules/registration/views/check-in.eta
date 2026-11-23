@@ -1,0 +1,42 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card">
+      <h1><%= it.title %></h1>
+      <p><%= it.event.name %></p>
+<% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+<% } %>
+      <section aria-label="QR scanner">
+        <video id="check-in-camera" autoplay muted playsinline hidden></video>
+        <button class="button" type="button" id="start-camera">Start camera scanner</button>
+        <p id="camera-status" class="muted" aria-live="polite">Camera scanning requires HTTPS and a supported browser. You can also enter the pass code manually.</p>
+      </section>
+<% if (it.result?.status === 'ready') { %>
+      <section class="check-in-preview">
+        <h2>Review household</h2>
+        <p><%= it.result.household.name %> - <%= it.result.attendees.length %> attendees</p>
+        <ul>
+<% it.result.attendees.forEach((attendee) => { %>
+          <li><%= attendee.name %></li>
+<% }) %>
+        </ul>
+        <form method="post" action="/check-in/confirm">
+          <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+          <input type="hidden" name="token" value="<%= it.result.token ?? '' %>">
+          <button class="button primary" type="submit">Check in household</button>
+        </form>
+      </section>
+<% } else if (it.result?.status && it.result.status !== 'checked_in') { %>
+      <p class="notice"><%= it.errorMessages[it.result.status] %></p>
+<% } else if (it.result?.status === 'checked_in') { %>
+      <p class="notice"><%= it.errorMessages.checked_in %></p>
+<% } %>
+      <form method="post" action="/check-in/preview" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="manual-token">Enter pass code manually</label>
+          <input id="manual-token" name="token" autocomplete="off" required>
+        </fieldset>
+        <button class="button" type="submit">Look up pass</button>
+      </form>
+    </section>
+    <script type="module" src="/public/js/check-in.js"></script>

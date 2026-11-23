@@ -15,6 +15,41 @@
       "when": 1795332362147,
       "tag": "0001_survey",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795425664846,
+      "tag": "0002_small_molten_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795425715141,
+      "tag": "0003_rainy_bedlam",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795425728096,
+      "tag": "0004_next_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795425783328,
+      "tag": "0005_closed_rhino",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795430099452,
+      "tag": "0006_outgoing_husk",
+      "breakpoints": true
     }
   ]
 }
