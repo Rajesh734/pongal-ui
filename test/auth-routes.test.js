@@ -186,6 +186,21 @@ describe('household auth routes', () => {
     expect(sessions[0].tokenHash).not.toContain(response.headers['set-cookie'].match(/pongal_session=([^;]+)/)[1]);
   });
 
+  it('Accepts a Google redirect-mode callback posted from accounts.google.com', async () => {
+    const google = await keys();
+    await setup({ googleKeys: google });
+    const page = await app.inject('/login');
+    expect(page.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/google',
+      headers: { origin: 'https://accounts.google.com', cookie: 'g_csrf_token=csrf-value' },
+      payload: { g_csrf_token: 'csrf-value', credential: await googleCredential(google.privateKey) },
+    });
+    expect(response.statusCode).toBe(303);
+    expect(response.headers.location).toBe('/');
+  });
+
   it('Rejects a Google callback without matching CSRF values', async () => {
     const google = await keys();
     await setup({ googleKeys: google });

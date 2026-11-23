@@ -74,12 +74,14 @@ Registration submission creates a pending record and stores its calculated amoun
 
 Generate cryptographically random tokens, store only keyed hashes or cryptographic hashes, and send user-facing links through the existing SMTP transport. Use an HTTP-only, secure-in-production, SameSite=Lax session cookie and validate state-changing requests against the request origin and an anti-CSRF token. The check-in page requires an authenticated account with an active check-in grant.
 
+The origin check compares `Origin` (or the `Referer` origin) with `APP_BASE_URL`. Some embedded browsers send `Origin: null` for same-origin form posts; those are accepted only when `Sec-Fetch-Site: same-origin` and the request host match the configured origin, and the anti-CSRF token still applies. One CSRF token is issued per request so the page form and the header logout form agree. Blocked posts log the received origin and the expected `APP_BASE_URL` (never tokens or full referrers) so a misconfigured `APP_BASE_URL` is diagnosable.
+
 - **Alternative: place attendee data or sequential registration IDs in QR codes.** Rejected because the QR is visible to anyone who can photograph it and must not disclose personal data or be guessable.
 - **Alternative: save authentication or guest tokens in browser local storage.** Rejected because browser scripts could read them.
 
 ### D6. Verify Google sign-in on the server
 
-Use the Google Identity Services credential and verify its signature, issuer, audience, expiry, and `email_verified` claim on the server before creating a session. The client ID is public configuration; no client secret is sent to the browser. Add only the required Google script origin to the existing CSP and use the application's CSRF protections for the credential submission.
+Use the Google Identity Services credential and verify its signature, issuer, audience, expiry, and `email_verified` claim on the server before creating a session. The client ID is public configuration; no client secret is sent to the browser. Add only the required Google script, frame, and style origins to the CSP; GIS injects inline styles, so `style-src` allows `'unsafe-inline'` (scripts stay restricted). Send `Cross-Origin-Opener-Policy: same-origin-allow-popups` so the GIS popup can return the credential; the default `same-origin` leaves the popup blank. The credential callback relies on Google's `g_csrf_token` double-submit check plus ID-token verification instead of the site origin check, because GIS redirect mode posts from `accounts.google.com`.
 
 - **Alternative: trust an email address sent by browser code.** Rejected because a visitor can alter it.
 - **Alternative: use an unverified profile response.** Rejected because guest household linking depends on verified email ownership.
@@ -101,13 +103,15 @@ Add registration prices, age-band labels, performance limits, and the approved 2
 
 Define the added tables in `src/db/schema/index.js` and generate numbered migrations under `drizzle/`. Apply the same migrations on PGlite and PostgreSQL at startup. Keep PGlite for automated tests; deploy both NAS app environments with `DB_DRIVER=postgres`, separate databases and roles, and the existing `DATABASE_*` settings through environment/secret files. Attach the app and PostgreSQL containers to the private `kalanjiyam-net` and publish no PostgreSQL port.
 
+Production uses `samugam` / `samugam_app`, created by the PostgreSQL stack's first-start `initdb/01-samugam.sh`. Non-production uses `samugam_nonprod` / `samugam_nonprod_app`, created once by hand with an equivalent script because init scripts do not rerun on an existing data folder; it includes the `citext` extension required by the first migration. Per-environment `.env` files hold `DATABASE_NAME`, `DATABASE_USER`, and `APP_BASE_URL`; `secrets/database_password` and `secrets/qr_pass_encryption_key` are owned by UID 1000 with mode 400. CI validates `compose.yaml` with placeholder values and the `secrets.example` files, including `database_password`.
+
 - **Alternative: point non-production and production to the same database.** Rejected because test registrations could mix with production family and payment data.
 - **Alternative: replace PGlite in automated tests.** Rejected because the existing in-memory migration tests are fast and still verify portable SQL.
 - **Alternative: create tables manually in pgAdmin.** Rejected because migrations keep development, tests, and future deployments on the same schema version.
 
 ### D10. Organize admin work into protected pages and safe exports
 
-Keep one organizer dashboard with separate Registrations, Payments, Volunteers, and Check-in Access pages. Reuse the current Cloudflare Access verification for every admin route. The event roster is filterable by event and payment status. Export one attendee per CSV row, repeat household and payment columns, encode as UTF-8, and neutralize spreadsheet formulas.
+Keep one organizer dashboard with separate Registrations, Payments, Volunteers, and Check-in Access pages. Reuse the current Cloudflare Access verification for every admin route. The event roster is filterable by event and payment status. Export one attendee per CSV row, repeat household and payment columns, encode as UTF-8, and neutralize spreadsheet formulas. Admin denials log a specific reason (missing Access header, audience mismatch, issuer mismatch, no email claim, or admin disabled) without the token, and `CF_ACCESS_TEAM_DOMAIN` tolerates a leading `https://` or trailing slash.
 
 - **Alternative: place all actions and PII on one unfiltered admin page.** Rejected because distinct pages are easier to scan and reduce unnecessary exposure of registration details.
 - **Alternative: export one household per row with a variable number of attendee columns.** Rejected because a row per attendee is stable for reporting and avoids a different CSV shape for each family.
@@ -121,11 +125,13 @@ Keep one organizer dashboard with separate Registrations, Payments, Volunteers, 
 - [A release changes fee or locale data] -> Snapshot attendee fees and event configuration at registration time; retain registration history.
 - [Google OAuth setup differs from GIS requirements] -> Verify the configured client ID and authorized origin before enabling the Google button; do not request or store a browser-side client secret.
 - [CSV fields contain spreadsheet formulas] -> Neutralize formula-leading values and test exports with Excel-compatible inputs.
+- [Deploy workflow runs from the wrong branch] -> A manual Deploy copies that branch's `compose.yaml`; running it from `main` before merge deploys an old Compose file without the PostgreSQL and QR settings. Run Deploy from the branch that built the image, or merge first.
+- [`APP_BASE_URL` differs from the browser address] -> Every form post is blocked and Google sign-in fails; it must match the public scheme and hostname exactly.
 
 ## Migration Plan
 
 1. Add schema definitions and additive migrations; run them against in-memory PGlite tests.
-2. Deploy non-production against its separate PostgreSQL database and verify migrations, registration, and health before production.
+2. Deploy non-production against its separate `samugam_nonprod` PostgreSQL database and verify migrations, registration, and health before production.
 3. Configure production with the `samugam` database and `samugam_app` role; keep database credentials in the mounted secret file and publish no database port.
 4. Preserve existing PGlite data. Decide separately whether to import any survey history before retiring the old data volume.
 5. Configure SMTP and the Google client origin before enabling email verification and Google sign-in in production.
@@ -135,5 +141,5 @@ Keep one organizer dashboard with separate Registrations, Payments, Volunteers, 
 ## Open Questions
 
 - The organizer will provide the 2027 event date, venue, final schedule, and About-page copy before launch.
-- Confirm the Google Cloud client's authorized JavaScript origin during implementation without sharing its client secret.
+- Google Cloud client: authorized JavaScript origin `https://<host>` and redirect URI `https://<host>/api/auth/google` are required per environment; non-prod is configured, production is pending.
 - Decide whether the existing PGlite survey history should be imported into PostgreSQL before removing its retained data volume.

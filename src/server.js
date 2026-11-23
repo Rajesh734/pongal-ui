@@ -53,6 +53,8 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
     },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
+    // Google sign-in opens a popup that must post its result back to this page.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   });
   await app.register(formbody);
   await app.register(rateLimit, {

@@ -79,8 +79,8 @@
             <input id="attendeeName__INDEX__" name="attendeeName" required minlength="1" maxlength="150">
             <label for="attendeeAgeBand__INDEX__">Age on event date</label>
             <select id="attendeeAgeBand__INDEX__" name="attendeeAgeBand" required>
-              <option value="11_plus">Age 11+ - $<%= it.prices.age_11_plus / 100 %></option>
-              <option value="5_to_10" selected>Age 5-10 - $<%= it.prices.age_5_to_10 / 100 %></option>
+              <option value="11_plus" selected>Age 11+ - $<%= it.prices.age_11_plus / 100 %></option>
+              <option value="5_to_10">Age 5-10 - $<%= it.prices.age_5_to_10 / 100 %></option>
               <option value="under_5">Under 5 - Free</option>
             </select>
             <div class="attendee-volunteer">

@@ -18,15 +18,23 @@ The root route SHALL render the Pongal event Home page with event details and a 
 - **THEN** the page does not present prior-year flyer details as confirmed 2027 information
 
 ### Requirement: Portal navigation exposes the agreed pages
-The public navigation SHALL include Home, Register, and About. Signed-in households SHALL also have My Registrations and Profile access; signed-out visitors SHALL have login and signup access. The navigation MUST NOT expose the existing interest survey.
+The public navigation SHALL include Home, Register, and About. Account actions SHALL appear in a dropdown opened from a user icon at the top right: Sign in and Sign up for signed-out visitors, and Profile, My Registrations, and Log out for signed-in households. On narrow screens the public links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
 
 #### Scenario: Signed-out visitor sees navigation
 - **WHEN** a signed-out visitor opens the Home page
-- **THEN** navigation offers Home, Register, About, Log in, and Sign up, with no Interest Survey link
+- **THEN** navigation offers Home, Register, and About, the user icon menu offers Sign in and Sign up, and there is no Interest Survey link
 
 #### Scenario: Signed-in household sees navigation
 - **WHEN** a household is signed in
-- **THEN** navigation offers My Registrations, Profile, and Log out in addition to the public pages
+- **THEN** the user icon menu offers Profile, My Registrations, and a protected Log out action
+
+#### Scenario: Mobile visitor uses the menu
+- **WHEN** a visitor opens the site on a 360 px wide screen
+- **THEN** a three-line menu icon at the top left reveals Home, About, and Register without horizontal scrolling
+
+#### Scenario: Visitor dismisses an open menu
+- **WHEN** the navigation or account menu is open and the visitor clicks outside it or presses Escape
+- **THEN** the menu closes without a second click on its icon
 
 #### Scenario: Existing survey is retained but hidden
 - **WHEN** a visitor uses the portal navigation
@@ -38,6 +46,32 @@ The system SHALL provide an About page for the Eastcoast Tamil Community with or
 #### Scenario: Visitor opens About
 - **WHEN** a visitor selects "About"
 - **THEN** the page shows the approved community description and organizer contact information
+
+### Requirement: Consistent site identity and readable forms
+The header SHALL show the community logo on both sides of the site name with the same orientation. The browser favicon SHALL use the site's cream background color. Form inputs, including email and phone fields, MUST share one width within a form, and sign-in, sign-up, profile, and registration forms MUST stay within a readable maximum width on wide screens.
+
+#### Scenario: Visitor views the header and favicon
+- **WHEN** a visitor opens any portal page
+- **THEN** both header logos face the same direction and the browser tab icon uses the cream site background
+
+#### Scenario: Visitor uses a form on a laptop
+- **WHEN** a visitor opens sign-up or registration on a 1440 px wide screen
+- **THEN** the form and the Google sign-up button stay at a fixed readable width instead of spanning the screen
+
+### Requirement: Inline validation matches server validation
+Required portal form fields SHALL show an inline message when the visitor moves to the next input and again on submit. Each field MUST show at most one message at a time. The server MUST apply the same rules and reject invalid input when browser checks are bypassed.
+
+#### Scenario: Visitor tabs out of an invalid field
+- **WHEN** a visitor enters an invalid email or a phone number that is not 10 digits and moves to the next input
+- **THEN** the field is marked invalid and a single message explains how to fix it
+
+#### Scenario: Visitor keeps editing a field
+- **WHEN** a visitor types and deletes repeatedly in a field that has a message
+- **THEN** the message updates in place and is not duplicated
+
+#### Scenario: Browser checks are bypassed
+- **WHEN** a request with invalid values reaches the server directly
+- **THEN** the server rejects it with the matching validation message
 
 ### Requirement: Household registration history is private
 The system SHALL show an authenticated household its current and prior event registrations, their payment status, and passes for confirmed registrations. A household MUST NOT see another household's registration.

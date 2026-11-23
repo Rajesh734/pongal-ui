@@ -7,11 +7,19 @@ Lets a family manage its household profile and event registrations through verif
 ## ADDED Requirements
 
 ### Requirement: Household account signup methods
-The system SHALL allow a household to create or access an account with Google or with an email address and password. Manual accounts MUST verify control of the email address before accessing linked registrations.
+The system SHALL allow a household to create or access an account with Google or with an email address and password. Manual signup MUST collect the first name, last name, email, and password, and MUST verify control of the email address before accessing linked registrations. The signup page MUST offer Google sign-up when a Google client ID is configured.
 
 #### Scenario: Manual signup
-- **WHEN** a visitor submits a valid email and password for manual signup
-- **THEN** the system sends a one-time verification link and displays "Check your email to verify your account."
+- **WHEN** a visitor submits a first name, last name, valid email, and a password of at least 8 characters
+- **THEN** the system stores the household name as "First Last", sends a one-time verification link, and displays "Check your email to verify your account."
+
+#### Scenario: Manual signup is missing a name
+- **WHEN** a visitor omits the first or last name
+- **THEN** the system creates no account and displays "Enter your first and last name, a valid email address, and a password of at least 8 characters."
+
+#### Scenario: Email delivery is not configured
+- **WHEN** a visitor submits manual signup while SMTP is not configured
+- **THEN** the system creates no session and displays "Email delivery is not configured. Contact the organizers to complete sign-up."
 
 #### Scenario: Google signup
 - **WHEN** a visitor signs in with a valid Google credential whose email is verified
@@ -20,6 +28,25 @@ The system SHALL allow a household to create or access an account with Google or
 #### Scenario: Unverified Google email
 - **WHEN** a Google credential does not assert a verified email
 - **THEN** the system denies account access and displays "We couldn't verify your Google account. Try another sign-in method."
+
+#### Scenario: Google sign-in completes through the popup
+- **WHEN** a visitor selects a Google account in the Google sign-in popup
+- **THEN** the popup returns the credential to the portal page, the popup closes, and the household is signed in
+
+#### Scenario: Google sign-in completes by redirect
+- **WHEN** Google posts the credential from `accounts.google.com` instead of using the popup
+- **THEN** the system accepts it only when the `g_csrf_token` cookie and form value match and the ID token verifies
+
+### Requirement: Form submissions are protected against cross-site requests
+Every state-changing form post MUST come from the configured `APP_BASE_URL` origin and carry a matching anti-CSRF token. A browser that sends `Origin: null` MUST be accepted only when `Sec-Fetch-Site` is `same-origin` and the request host matches the configured origin. The Google credential callback MUST use Google's `g_csrf_token` check instead of the site origin check.
+
+#### Scenario: Form is posted from another site
+- **WHEN** a sign-in, sign-up, or registration form is posted from an origin other than `APP_BASE_URL`
+- **THEN** the system rejects it, displays "We could not verify where this request came from. Please reload the page and try again.", and logs the received origin and the expected `APP_BASE_URL` without logging tokens
+
+#### Scenario: Same-origin post with an opaque origin
+- **WHEN** a browser posts a portal form with `Origin: null`, `Sec-Fetch-Site: same-origin`, and the configured host
+- **THEN** the system accepts the request after its anti-CSRF token check passes
 
 ### Requirement: Manual email verification
 The system SHALL verify manual account email ownership with a single-use, time-limited link before allowing access to household registrations.

@@ -15,6 +15,7 @@
 - [x] 2.4 Implement login, logout, and secure session lifecycle; verify successful login, generic login failure, logout, and expired-session scenarios.
 - [x] 2.5 Add authenticated household profile reads and updates; verify own-profile access and unauthenticated redirection without exposing another household's data.
 - [x] 2.6 Add auth route tests for rate limits, CSRF/origin rejection, and session-cookie flags; verify no credential or token is written to browser-readable storage.
+- [x] 2.7 Collect first and last name for manual signup, show Google sign-up on the signup page, and explain when SMTP is not configured; verify name validation and the SMTP message.
 
 ## 3. Household registration
 
@@ -53,6 +54,9 @@
 - [x] 6.3 Update signed-in and signed-out navigation; verify the account actions and public links for both states.
 - [x] 6.4 Remove Interest Survey links from Home and navigation while retaining its route, source, and data; verify the portal has no survey menu or CTA.
 - [x] 6.5 Verify mobile navigation, account menu, registration entry point, and page layout at 360 px without horizontal scrolling.
+- [x] 6.6 Add the top-left three-line mobile menu and top-right user-icon account dropdown that close on outside click or Escape; verify signed-in and signed-out menu actions in the browser.
+- [x] 6.7 Match header logo orientation, use a cream-background favicon, and constrain auth/registration form widths; verify desktop widths and equal input sizes.
+- [x] 6.8 Add blur-time inline validation backed by the same server rules; verify one message per field while typing and deleting.
 
 ## 7. Localization
 
@@ -64,6 +68,7 @@
 ## 8. Integration and deployment verification
 
 - [x] 8.1 Verify all migrations and core registration/auth tests pass on PGlite; run the full `npm test` suite and resolve regressions.
+- [x] 8.6 Harden deployment diagnostics: accept same-origin `Origin: null` posts, log blocked origins and admin denial reasons, allow the GIS popup via `same-origin-allow-popups`, accept Google redirect-mode callbacks via `g_csrf_token`, and validate Compose in CI with all required placeholders.
 - [ ] 8.2 Configure both NAS app environments for PostgreSQL over `kalanjiyam-net`, with separate databases/roles and secret-file passwords; verify Compose publishes no PostgreSQL port and the app health check passes.
 - [ ] 8.3 Configure Google authorized origins and SMTP in the deployment environment without exposing secrets; verify manual verification, Google sign-in, guest links, and pass delivery end to end.
 - [ ] 8.4 Configure organizer-approved 2027 date, venue, agenda, About copy, and payment recipient; verify the public pages show the approved values.

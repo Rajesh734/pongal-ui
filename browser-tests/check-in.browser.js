@@ -234,6 +234,7 @@ test('registration validates on blur, hides volunteering for minors, and continu
   const childRow = page.locator('.attendee-row').nth(1);
   const ageOptions = await childRow.locator('[name="attendeeAgeBand"] option').evaluateAll(options => options.map(option => option.value));
   expect(ageOptions).toEqual(['11_plus', '5_to_10', 'under_5']);
+  await expect(childRow.locator('[name="attendeeAgeBand"]')).toHaveValue('11_plus');
   await childRow.locator('[name="attendeeAgeBand"]').selectOption('11_plus');
   await expect(childRow.locator('.attendee-volunteer')).toBeVisible();
   await childRow.locator('[name="attendeeAgeBand"]').selectOption('5_to_10');

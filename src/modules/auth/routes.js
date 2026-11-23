@@ -55,11 +55,13 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
 
   app.addHook('preValidation', async (request, reply) => {
     if (request.method !== 'POST') return;
+    // Google's redirect mode posts from accounts.google.com; the route verifies g_csrf_token and the ID token instead.
+    if (request.url.split('?')[0] === '/api/auth/google') return;
     if (!isSameOrigin(request, config)) {
+      request.log.warn({ origin: request.headers.origin ?? null, expected: config.APP_BASE_URL ?? null }, 'Blocked form post: origin does not match APP_BASE_URL');
       return renderMessage(reply, 'Request blocked', 'We could not verify where this request came from. Please reload the page and try again.', 403);
     }
 
-    if (request.url.split('?')[0] === '/api/auth/google') return;
     if (!hasValidCsrfToken(request)) {
       return renderMessage(reply, 'Request blocked', 'Your form security check expired. Reload the page and try again.', 403);
     }

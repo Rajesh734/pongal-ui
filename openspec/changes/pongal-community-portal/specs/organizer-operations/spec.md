@@ -17,6 +17,10 @@ The organizer dashboard SHALL provide separate pages for registrations, payment 
 - **WHEN** a visitor without organizer authentication requests any organizer page
 - **THEN** no organizer data is returned and access is denied
 
+#### Scenario: Organizer access is misconfigured
+- **WHEN** a request is denied because the Cloudflare Access token is missing, has the wrong audience, has the wrong issuer, or has no email
+- **THEN** the visitor sees "You don't have access to this page." and the server logs the specific reason without logging the token
+
 ### Requirement: Organizer registration roster
 An authorized organizer SHALL be able to view and filter event registrations by event and payment status, including household contact, attendee names and age bands, amount, and registration status.
 

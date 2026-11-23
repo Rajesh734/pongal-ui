@@ -35,6 +35,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
       await verifyAdmin(request);
     } catch (error) {
       const status = error instanceof AdminAccessError ? error.statusCode : 403;
+      request.log.warn({ reason: error?.reason ?? (verifyAdmin ? 'unexpected error' : 'admin disabled: CF_ACCESS_TEAM_DOMAIN or CF_ACCESS_AUD not set') }, 'Admin access denied');
       const message = status === 503 ? ADMIN_ACCESS_UNAVAILABLE : ADMIN_ACCESS_DENIED;
       return reply.code(status).type('text/plain; charset=utf-8').send(message);
     }

@@ -32,6 +32,10 @@ Each registration MUST include a named primary contact in the first attendee row
 - **WHEN** an additional attendee uses the age-11-or-older band
 - **THEN** the system accepts that attendee and includes the adult fee in the total
 
+#### Scenario: Household adds another attendee
+- **WHEN** a household selects "Add attendee"
+- **THEN** the new row offers Age 11+, Age 5-10, and Under 5 and defaults to Age 11+
+
 #### Scenario: Primary contact age is fixed
 - **WHEN** a household starts a registration
 - **THEN** the first attendee is fixed to the age-11-or-older contact band and cannot be removed
@@ -90,7 +94,11 @@ A household MAY submit up to two performances. Each entry MUST include a perform
 - **THEN** the system does not save that entry and displays "Complete the required details for each performance."
 
 ### Requirement: Volunteer preferences per attendee
-The system SHALL let the household mark each named attendee as willing to volunteer and select one or more existing volunteer roles for that attendee. The form MUST reuse the attendee's entered name and MUST NOT ask for it again.
+The system SHALL let the household mark each named attendee as willing to volunteer and select one or more existing volunteer roles for that attendee. The form MUST reuse the attendee's entered name and MUST NOT ask for it again. Only attendees age 11 or older MAY volunteer; the form MUST hide volunteer options for younger attendees and the server MUST reject volunteer selections for them.
+
+#### Scenario: Child attendee cannot volunteer
+- **WHEN** an attendee's age band is Age 5-10 or Under 5
+- **THEN** that attendee's volunteer options are hidden, and a submitted volunteer selection is rejected with "Attendees under age 11 cannot volunteer."
 
 #### Scenario: Attendee selects volunteer roles
 - **WHEN** Priya is marked willing to volunteer and selects "Registration desk" and "Photography"

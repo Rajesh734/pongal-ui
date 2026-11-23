@@ -51,7 +51,10 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
   });
   app.addHook('preValidation', async (request, reply) => {
     if (request.method !== 'POST') return;
-    if (!isSameOrigin(request, config)) return reply.code(403).send('Request origin is not allowed.');
+    if (!isSameOrigin(request, config)) {
+      request.log.warn({ origin: request.headers.origin ?? null, expected: config.APP_BASE_URL ?? null }, 'Blocked form post: origin does not match APP_BASE_URL');
+      return reply.code(403).send('Request origin is not allowed.');
+    }
     if (!hasValidCsrfToken(request)) return reply.code(403).send('Form security check failed. Reload the page and try again.');
   });
 
