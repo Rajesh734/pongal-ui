@@ -106,7 +106,7 @@ CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com
 CF_ACCESS_AUD=<Access application AUD tag>
 ```
 
-The production database is `samugam` with login `samugam_app`. Do not point non-production at that database. Create a separate non-prod database and role with `/volume1/docker/kalanjiyam/scripts/add-app-db.sh pongal_nonprod`, then set `DATABASE_NAME=pongal_nonprod` and `DATABASE_USER=pongal_nonprod_app` in non-prod `.env`. Store each environment's own database password in `secrets/database_password`.
+The production database is `samugam` with login `samugam_app`. Do not point non-production at that database. Create a separate non-prod database and role with the commands in `docs/runbooks/2026-11-23-postgresql-18-nas.md` (section 3), then set `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app` in non-prod `.env`. Store each environment's own database password in `secrets/database_password`.
 
 Compose mounts that secret as `/run/secrets/database_password`; it passes `DATABASE_PASSWORD_FILE` to the app, not the password itself. The app expects separate `DATABASE_*` settings, not the `DATABASE_URL` shown in the original Step 10 example. Keep the existing repository Drizzle configuration and `drizzle/` migrations. Migrations run at app startup; there is no `npm run seed` command.
 
@@ -287,7 +287,7 @@ Verify the backup container logs report completed database dumps and periodicall
 
 A deploy that does not become healthy rolls the app image back, but it does not roll PostgreSQL schema or data back. The portal migrations are additive; deploy the previous image only when it remains compatible with the applied schema. To go back from a healthy but wrong release, run **Actions > Deploy > Run workflow** with the previous tag (shown in the summary of the earlier Deploy run).
 
-The deploy script still copies `data/pglite` when present; this is only a legacy PGlite safety copy and does not back up PostgreSQL. If PostgreSQL data needs recovery, use a verified dump from `/volume1/docker/kalanjiyam/backups`. Restore to a temporary database first and validate it before changing the live database; do not overwrite `samugam` or `pongal_nonprod` based only on a failed app deploy.
+The deploy script still copies `data/pglite` when present; this is only a legacy PGlite safety copy and does not back up PostgreSQL. If PostgreSQL data needs recovery, use a verified dump from `/volume1/docker/kalanjiyam/backups`. Restore to a temporary database first and validate it before changing the live database; do not overwrite `samugam` or `samugam_nonprod` based only on a failed app deploy.
 
 ## 9. Restore from a nightly backup
 

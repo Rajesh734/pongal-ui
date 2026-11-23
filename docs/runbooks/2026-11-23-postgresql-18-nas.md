@@ -54,11 +54,34 @@ Do not print or paste the key. Set ownership and permissions so the app containe
 
 ### 3. Create isolated non-production database access
 
-Do not point non-production at the production `samugam` database. On the NAS, use the existing `scripts/add-app-db.sh` helper to create a dedicated `pongal_nonprod` database and `pongal_nonprod_app` login. Store that generated password in the non-production folder's `secrets/database_password`, and set the non-production `.env` to `DATABASE_NAME=pongal_nonprod` and `DATABASE_USER=pongal_nonprod_app`.
+Do not point non-production at the production `samugam` database. The `initdb/01-samugam.sh` script runs only when PostgreSQL initialises an empty data folder, so do not re-run it. Create the non-production role and database once, with the same settings, from the non-production app folder. The password is generated, passed to `psql` through the environment (never on the command line), and written straight to the secret file:
 
-Add `pongal_nonprod` to the PostgreSQL backup service's database list. Keep the production and non-production password files distinct. The `add-app-db.sh` output includes a connection string with the generated password; keep it in the local terminal/password manager and do not paste it into chat or documentation.
+```sh
+cd /volume1/platform/docker/non-prod/community-site
+export PW="$(openssl rand -hex 24)"
+docker exec -i -e PW kalanjiyam sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres' <<'EOSQL'
+\getenv pw PW
+CREATE ROLE samugam_nonprod_app WITH LOGIN PASSWORD :'pw'
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION CONNECTION LIMIT 15;
+CREATE DATABASE samugam_nonprod OWNER samugam_nonprod_app;
+REVOKE ALL ON DATABASE samugam_nonprod FROM PUBLIC;
+ALTER ROLE samugam_nonprod_app SET statement_timeout = '30s';
+ALTER ROLE samugam_nonprod_app SET idle_in_transaction_session_timeout = '60s';
+\connect samugam_nonprod
+CREATE EXTENSION IF NOT EXISTS citext;
+EOSQL
+mkdir -p secrets
+[ -f secrets/database_password ] && chmod 600 secrets/database_password
+printf '%s' "$PW" > secrets/database_password && unset PW
+chmod 400 secrets/database_password
+chown 1000:1000 secrets/database_password
+```
 
-**Verification**: `docker exec kalanjiyam psql -U pongal_nonprod_app -d pongal_nonprod -c 'SELECT current_user, current_database();'` reports the non-production role/database. Attempts to create a database or connect as the app role to the maintenance database should fail.
+Then set the non-production `.env` to `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app`.
+
+Add `samugam_nonprod` to the PostgreSQL backup service's database list. Keep the production and non-production password files distinct, and do not paste either password into chat or documentation.
+
+**Verification**: `docker exec kalanjiyam psql -U samugam_nonprod_app -d samugam_nonprod -c 'SELECT current_user, current_database();'` reports the non-production role/database. Attempts to create a database or connect as the app role to the maintenance database should fail.
 
 ### 4. Attach the application to the private database network
 

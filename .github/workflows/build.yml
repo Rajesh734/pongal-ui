@@ -37,6 +37,7 @@ jobs:
         run: |
           cp -r secrets.example secrets
           export IMAGE_TAG=ci APP_ENV=non-prod HOST_PORT=3101
+          export DATABASE_NAME=samugam_nonprod DATABASE_USER=samugam_nonprod_app APP_BASE_URL=https://ci.example.org
           docker compose config --quiet
           bad=$(docker compose config --format json | jq -r '.services[].ports[]?.host_ip // "0.0.0.0"' | grep -vx '127.0.0.1' || true)
           if [ -n "$bad" ]; then echo "compose.yaml must publish ports on 127.0.0.1 only"; exit 1; fi
