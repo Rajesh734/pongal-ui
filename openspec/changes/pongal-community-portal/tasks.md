@@ -46,6 +46,7 @@
 - [x] 5.3 Record household check-in with scanner identity and timestamp; verify one check-in per registration, repeat-scan messaging, and no duplicate history entry.
 - [x] 5.4 Enforce the separate check-in permission on every scan; verify approved access, volunteer-without-permission denial, and revocation during an active session.
 - [x] 5.5 Add browser tests for camera permission denied, camera unavailable, and successful scan on HTTPS at mobile viewport sizes.
+- [x] 5.6 Link the scanner from the admin menu and from the account menu for households with check-in permission; add a vendored jsQR fallback for browsers without BarcodeDetector and a Stop camera control; verify with route and browser tests.
 
 ## 6. Portal pages and navigation
 

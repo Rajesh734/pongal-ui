@@ -11,7 +11,11 @@ The organizer dashboard SHALL provide separate pages for registrations, payment 
 
 #### Scenario: Organizer navigates between activities
 - **WHEN** an authorized organizer opens the admin dashboard
-- **THEN** the menu offers "Registrations", "Payments", "Volunteers", and "Check-in Access" as separate pages
+- **THEN** the site header menu (mobile menu and desktop navigation) offers "Dashboard", "Registrations", "Payments", "Volunteers", "Check-in Access", "Scan Passes", and "Public site" as separate pages, marks the current page, and the pages themselves do not repeat this navigation below the header
+
+#### Scenario: Organizer reviews a wide table on a phone
+- **WHEN** an organizer views a report or payment table wider than the screen
+- **THEN** the table scrolls horizontally within the page so every column, including the "Confirm payment" action, is reachable without rotating the device
 
 #### Scenario: Unauthenticated visitor opens an organizer page
 - **WHEN** a visitor without organizer authentication requests any organizer page

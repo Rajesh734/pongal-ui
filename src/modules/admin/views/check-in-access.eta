@@ -1,13 +1,8 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
       <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <nav class="admin-nav" aria-label="Organizer activities">
-        <a href="/admin/registrations">Registrations</a>
-        <a href="/admin/payments">Payments</a>
-        <a href="/admin/volunteers">Volunteers</a>
-        <a href="/admin/check-in-access" aria-current="page">Check-in Access</a>
-      </nav>
       <h1>Check-in Access</h1>
+      <p>Approved volunteers sign in with their household account and open <a href="/check-in">Scan Passes</a> from the account menu to scan entry pass QR codes. To scan passes yourself, grant access to your own household email.</p>
     <% if (it.message) { %>
       <p class="notice" role="status"><%= it.message %></p>
     <% } %>

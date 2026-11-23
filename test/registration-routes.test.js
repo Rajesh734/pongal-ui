@@ -256,6 +256,7 @@ describe('registration routes', () => {
     expect(noPermission.statusCode).toBe(403);
     expect(noPermission.body).toContain('You don&#39;t have permission to check in attendees.');
     expect(noPermission.body).toContain('Enter pass code manually');
+    expect(noPermission.body).not.toContain('<a href="/check-in">Scan Passes</a>');
   });
 
   it('authorized scanner previews and records a confirmed family once', async () => {
@@ -285,7 +286,8 @@ describe('registration routes', () => {
 
     const scannerPage = await app.inject({ url: '/check-in', headers: { cookie: `pongal_session=${sessionToken}` } });
     expect(scannerPage.statusCode).toBe(200);
-    expect(scannerPage.body).toContain('Start camera scanner');
+    expect(scannerPage.body).toContain('Scan QR code with camera');
+    expect(scannerPage.body).toContain('<a href="/check-in">Scan Passes</a>');
     expect(scannerPage.body).toContain('Enter pass code manually');
     const setCookies = Array.isArray(scannerPage.headers['set-cookie'])
       ? scannerPage.headers['set-cookie']

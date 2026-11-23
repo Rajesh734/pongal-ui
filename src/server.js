@@ -6,6 +6,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import view from '@fastify/view';
 import { Eta } from 'eta';
+import { and, eq, isNull } from 'drizzle-orm';
 import { formatConfig, loadConfig } from './config.js';
 import { clientIp, turnstileEnabled, usesTurnstileTestKeys } from './core/abuse.js';
 import { scheduleBackups } from './core/backup.js';
@@ -15,6 +16,7 @@ import { CSRF_COOKIE, cookieValue, issueCsrfToken } from './core/csrf.js';
 import { genReqId, loggerOptions, registerRequestLogging } from './core/logger.js';
 import { findLogo, SITE_LOCATION, SITE_NAME } from './core/site.js';
 import { createDatabase } from './db/index.js';
+import { checkInPermissions } from './db/schema/index.js';
 import { seedEvents } from './db/seed-events.js';
 import { createMailer } from './modules/survey/mailer.js';
 import { IMPORT_MAP_CSP_HASH, surveyRoutes } from './modules/survey/routes.js';
@@ -87,7 +89,14 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
     const navCsrfToken = request.method === 'GET'
       ? issueCsrfToken(request, reply, config)
       : cookieValue(request.headers.cookie, CSRF_COOKIE) ?? '';
+    const householdId = request.siteAccount?.household?.id;
+    const [permission] = householdId && database?.db
+      ? await database.db.select({ id: checkInPermissions.id }).from(checkInPermissions)
+        .where(and(eq(checkInPermissions.householdId, householdId), isNull(checkInPermissions.revokedAt))).limit(1)
+      : [];
     reply.locals = {
+      adminPath: request.url.startsWith('/admin') ? request.url.split('?')[0].replace(/\/$/, '') || '/admin' : null,
+      canCheckIn: Boolean(permission),
       siteAccount: request.siteAccount?.household ?? null,
       navCsrfToken,
     };

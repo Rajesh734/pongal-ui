@@ -95,6 +95,11 @@ describe('organizer portal reports', () => {
     for (const route of ['/admin/registrations', '/admin/payments', '/admin/volunteers', '/admin/check-in-access']) {
       expect(home.body).toContain(route);
     }
+    expect(home.body).toContain('aria-label="Organizer navigation"');
+    expect(home.body).toContain('aria-label="Organizer mobile navigation"');
+    expect(home.body).not.toContain('class="admin-nav"');
+    expect(home.body).toContain('<a href="/admin" aria-current="page">Dashboard</a>');
+    expect(home.body).toContain('<a href="/check-in">Scan Passes</a>');
 
     const pending = await app.inject({ url: '/admin/registrations?event=pongal-2027&status=payment_pending', headers: adminHeaders() });
     expect(pending.statusCode).toBe(200);

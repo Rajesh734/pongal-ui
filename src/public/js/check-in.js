@@ -1,7 +1,33 @@
 const cameraButton = document.querySelector('#start-camera');
+const stopButton = document.querySelector('#stop-camera');
 const video = document.querySelector('#check-in-camera');
 const cameraStatus = document.querySelector('#camera-status');
 const lookupForm = document.querySelector('form[action="/check-in/preview"]');
+
+const UNAVAILABLE = 'Camera access is unavailable. Enter the pass code manually or ask an organizer for help.';
+const FAILED = 'Camera scan failed. Enter the pass code manually or ask an organizer for help.';
+
+async function createDecoder() {
+  if (typeof window.BarcodeDetector?.getSupportedFormats === 'function') {
+    const formats = await window.BarcodeDetector.getSupportedFormats().catch(() => []);
+    if (formats.includes('qr_code')) {
+      const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+      return async () => (await detector.detect(video))[0]?.rawValue ?? null;
+    }
+  }
+  const { default: jsQR } = await import('/vendor/jsqr.mjs');
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  return async () => {
+    if (!video.videoWidth) return null;
+    const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    return jsQR(image.data, image.width, image.height, { inversionAttempts: 'dontInvert' })?.data ?? null;
+  };
+}
 
 if (cameraButton && video && cameraStatus && lookupForm) {
   let stream;
@@ -12,36 +38,46 @@ if (cameraButton && video && cameraStatus && lookupForm) {
     stream?.getTracks().forEach((track) => track.stop());
     stream = undefined;
     video.hidden = true;
+    cameraButton.hidden = false;
+    if (stopButton) stopButton.hidden = true;
   };
 
+  stopButton?.addEventListener('click', () => {
+    stopCamera();
+    cameraStatus.textContent = 'Camera stopped.';
+  });
+
   cameraButton.addEventListener('click', async () => {
-    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !('BarcodeDetector' in window)) {
-      cameraStatus.textContent = 'Camera access is unavailable. Enter the pass code manually or ask an organizer for help.';
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      cameraStatus.textContent = UNAVAILABLE;
       return;
     }
 
     try {
+      const decode = await createDecoder();
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
       video.srcObject = stream;
       video.hidden = false;
+      cameraButton.hidden = true;
+      if (stopButton) stopButton.hidden = false;
       await video.play();
-      const detector = new BarcodeDetector({ formats: ['qr_code'] });
       scanning = true;
       cameraStatus.textContent = 'Point the camera at a household entry pass.';
 
       const scan = async () => {
         if (!scanning) return;
         try {
-          const [code] = await detector.detect(video);
-          if (code?.rawValue) {
-            lookupForm.querySelector('input[name="token"]').value = code.rawValue;
+          const value = await decode();
+          if (value) {
+            lookupForm.querySelector('input[name="token"]').value = value;
             stopCamera();
+            cameraStatus.textContent = 'Pass scanned. Looking it up…';
             lookupForm.requestSubmit();
             return;
           }
         } catch {
           stopCamera();
-          cameraStatus.textContent = 'Camera scan failed. Enter the pass code manually or ask an organizer for help.';
+          cameraStatus.textContent = FAILED;
           return;
         }
         window.setTimeout(scan, 250);
@@ -49,9 +85,7 @@ if (cameraButton && video && cameraStatus && lookupForm) {
       scan();
     } catch (error) {
       stopCamera();
-      cameraStatus.textContent = error.name === 'NotAllowedError'
-        ? 'Camera access is unavailable. Enter the pass code manually or ask an organizer for help.'
-        : 'Camera scan failed. Enter the pass code manually or ask an organizer for help.';
+      cameraStatus.textContent = error.name === 'NotAllowedError' ? UNAVAILABLE : FAILED;
     }
   });
 }

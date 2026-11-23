@@ -18,7 +18,7 @@ The root route SHALL render the Pongal event Home page with event details and a 
 - **THEN** the page does not present prior-year flyer details as confirmed 2027 information
 
 ### Requirement: Portal navigation exposes the agreed pages
-The public navigation SHALL include Home, Register, and About. Account actions SHALL appear in a dropdown opened from a user icon at the top right: Sign in and Sign up for signed-out visitors, and Profile, My Registrations, and Log out for signed-in households. On narrow screens the public links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
+The public navigation SHALL include Home, Register, and About. Account actions SHALL appear in a dropdown opened from a user icon at the top right: Sign in and Sign up for signed-out visitors, and Profile, My Registrations, and Log out for signed-in households. Households with active check-in permission SHALL also see Scan Passes in the account menu. On admin pages, the header navigation SHALL show the organizer links instead of the public links. On narrow screens the header links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
 
 #### Scenario: Signed-out visitor sees navigation
 - **WHEN** a signed-out visitor opens the Home page
@@ -27,6 +27,11 @@ The public navigation SHALL include Home, Register, and About. Account actions S
 #### Scenario: Signed-in household sees navigation
 - **WHEN** a household is signed in
 - **THEN** the user icon menu offers Profile, My Registrations, and a protected Log out action
+
+#### Scenario: Check-in volunteer sees the scanner link
+- **GIVEN** a signed-in household has active check-in permission
+- **WHEN** it opens the user icon menu
+- **THEN** the menu also offers Scan Passes, and households without that permission do not see it
 
 #### Scenario: Mobile visitor uses the menu
 - **WHEN** a visitor opens the site on a 360 px wide screen

@@ -114,7 +114,7 @@ test('camera permission denial preserves manual pass entry', async ({ page }) =>
 
   await page.goto(`${baseUrl}/check-in`);
   expect(await page.evaluate(() => isSecureContext)).toBe(true);
-  await page.getByRole('button', { name: 'Start camera scanner' }).click();
+  await page.getByRole('button', { name: 'Scan QR code with camera' }).click();
 
   await expect(page.locator('#camera-status')).toContainText('Camera access is unavailable.');
   await expect(page.getByLabel('Enter pass code manually')).toBeVisible();
@@ -127,7 +127,7 @@ test('camera API unavailable preserves manual pass entry', async ({ page }) => {
   });
 
   await page.goto(`${baseUrl}/check-in`);
-  await page.getByRole('button', { name: 'Start camera scanner' }).click();
+  await page.getByRole('button', { name: 'Scan QR code with camera' }).click();
 
   await expect(page.locator('#camera-status')).toContainText('Camera access is unavailable.');
   await expect(page.getByLabel('Enter pass code manually')).toBeVisible();
@@ -142,7 +142,10 @@ test('successful mobile scan fills and submits the pass code', async ({ page }) 
     });
     Object.defineProperty(window, 'BarcodeDetector', {
       configurable: true,
-      value: class { async detect() { return [{ rawValue: scannedCode }]; } },
+      value: class {
+        static async getSupportedFormats() { return ['qr_code']; }
+        async detect() { return [{ rawValue: scannedCode }]; }
+      },
     });
     HTMLMediaElement.prototype.play = () => Promise.resolve();
     HTMLFormElement.prototype.requestSubmit = function () { this.dataset.testSubmitted = 'true'; };
@@ -151,11 +154,32 @@ test('successful mobile scan fills and submits the pass code', async ({ page }) 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${baseUrl}/check-in`);
   expect(await page.evaluate(() => isSecureContext)).toBe(true);
-  await page.getByRole('button', { name: 'Start camera scanner' }).click();
+  await page.getByRole('button', { name: 'Scan QR code with camera' }).click();
 
   const form = page.locator('form[action="/check-in/preview"]');
   await expect(form).toHaveAttribute('data-test-submitted', 'true');
   await expect(form.locator('input[name="token"]')).toHaveValue(passCode);
+});
+
+test('browsers without BarcodeDetector scan with the bundled decoder', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: async () => new MediaStream() },
+    });
+    Object.defineProperty(window, 'BarcodeDetector', { configurable: true, value: undefined });
+    HTMLMediaElement.prototype.play = () => Promise.resolve();
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/check-in`);
+  const decoderLoaded = page.waitForResponse((response) => response.url().endsWith('/vendor/jsqr.mjs') && response.ok());
+  await page.getByRole('button', { name: 'Scan QR code with camera' }).click();
+  await decoderLoaded;
+
+  await expect(page.locator('#camera-status')).toContainText('Point the camera at a household entry pass.');
+  await page.getByRole('button', { name: 'Stop camera' }).click();
+  await expect(page.getByRole('button', { name: 'Scan QR code with camera' })).toBeVisible();
 });
 
 test('mobile navigation, account menu, and Google signup are available', async ({ page }) => {

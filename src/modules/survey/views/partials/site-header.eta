@@ -1,13 +1,19 @@
+<%
+  const navLinks = it.adminPath
+    ? [['/admin', 'Dashboard'], ['/admin/registrations', 'Registrations'], ['/admin/payments', 'Payments'], ['/admin/volunteers', 'Volunteers'], ['/admin/check-in-access', 'Check-in Access'], ['/check-in', 'Scan Passes'], ['/', 'Public site']]
+    : [['/', 'Home'], ['/about', 'About'], ['/register', 'Register']];
+  const navLabel = it.adminPath ? 'Organizer' : 'Main';
+%>
   <header class="site-header">
     <div class="site-header__inner">
       <details class="mobile-menu">
         <summary aria-label="Open navigation menu">
           <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
         </summary>
-        <nav class="mobile-menu__panel" aria-label="Mobile navigation">
-          <a href="/">Home</a>
-          <a href="/about">About</a>
-          <a href="/register">Register</a>
+        <nav class="mobile-menu__panel" aria-label="<%= navLabel %> mobile navigation">
+<% navLinks.forEach(([href, label]) => { %>
+          <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
+<% }) %>
         </nav>
       </details>
       <div class="site-brand">
@@ -29,6 +35,9 @@
           <p class="account-menu__name"><%= it.siteAccount.name %></p>
           <a href="/account/profile">Profile</a>
           <a href="/account/registrations">My Registrations</a>
+<% if (it.canCheckIn) { %>
+          <a href="/check-in">Scan Passes</a>
+<% } %>
           <form method="post" action="/api/auth/logout">
             <input type="hidden" name="_csrf" value="<%= it.navCsrfToken ?? '' %>">
             <button type="submit">Log out</button>
@@ -40,9 +49,9 @@
         </div>
       </details>
     </div>
-    <nav class="site-nav site-nav--desktop" aria-label="Main navigation">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/register">Register</a>
+    <nav class="site-nav site-nav--desktop" aria-label="<%= navLabel %> navigation">
+<% navLinks.forEach(([href, label]) => { %>
+        <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
+<% }) %>
       </nav>
   </header>

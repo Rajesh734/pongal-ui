@@ -28,8 +28,12 @@ Only an authenticated user with check-in permission SHALL be able to open the sc
 
 #### Scenario: Approved volunteer opens scanner
 - **GIVEN** an administrator granted Priya check-in permission
-- **WHEN** Priya signs in and opens the event scanner
-- **THEN** the scanner is available to her
+- **WHEN** Priya signs in and opens the account menu
+- **THEN** the menu offers "Scan Passes", which opens the event scanner, and the scanner is available to her
+
+#### Scenario: Organizer finds the scanner from the admin menu
+- **WHEN** an organizer opens any admin page
+- **THEN** the admin menu offers "Scan Passes", and the Check-in Access page explains that scanning requires a household account with check-in permission
 
 #### Scenario: Volunteer has no check-in permission
 - **GIVEN** Arun registered as willing to volunteer but has no check-in permission
@@ -69,3 +73,8 @@ The scanner SHALL show the registration identity and attendee count before check
 #### Scenario: Camera is unavailable
 - **WHEN** the browser cannot access the device camera
 - **THEN** the scanner displays "Camera access is unavailable. Enter the pass code manually or ask an organizer for help." and offers manual pass-code entry
+
+#### Scenario: Browser has no built-in QR detector
+- **GIVEN** a phone browser without BarcodeDetector support, such as iOS Safari
+- **WHEN** the volunteer taps "Scan QR code with camera" and allows camera access
+- **THEN** the scanner decodes the QR code with a bundled same-origin decoder, and a "Stop camera" action releases the camera

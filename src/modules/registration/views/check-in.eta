@@ -5,10 +5,13 @@
 <% if (it.message) { %>
       <p class="notice" role="status"><%= it.message %></p>
 <% } %>
-      <section aria-label="QR scanner">
+      <section class="check-in-scanner" aria-label="QR scanner">
         <video id="check-in-camera" autoplay muted playsinline hidden></video>
-        <button class="button" type="button" id="start-camera">Start camera scanner</button>
-        <p id="camera-status" class="muted" aria-live="polite">Camera scanning requires HTTPS and a supported browser. You can also enter the pass code manually.</p>
+        <div class="check-in-scanner__actions">
+          <button class="button primary" type="button" id="start-camera">Scan QR code with camera</button>
+          <button class="button" type="button" id="stop-camera" hidden>Stop camera</button>
+        </div>
+        <p id="camera-status" class="muted" aria-live="polite">Tap the button and allow camera access, then point the camera at the household entry pass. You can also enter the pass code manually.</p>
       </section>
 <% if (it.result?.status === 'ready') { %>
       <section class="check-in-preview">

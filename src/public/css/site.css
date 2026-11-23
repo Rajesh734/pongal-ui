@@ -241,6 +241,16 @@ input:focus, textarea:focus, button:focus, a:focus, .error-summary:focus { outli
 
 /* Admin summary */
 .admin-banner { margin: 0 0 1.25rem; padding: 0.625rem 0.75rem; background: var(--turmeric-soft); border-left: 4px solid var(--marigold); }
+.table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 1rem; border: 1px solid #ecd9a8; border-radius: 0.5rem; }
+.table-scroll table { width: 100%; min-width: 44rem; border-collapse: collapse; font-size: 0.9375rem; }
+.table-scroll th, .table-scroll td { padding: 0.5rem 0.625rem; text-align: left; vertical-align: top; border-bottom: 1px solid #f1e3c2; }
+.table-scroll th { background: var(--cream); color: var(--maroon); white-space: nowrap; }
+.table-scroll td:last-child, .table-scroll .button { white-space: nowrap; }
+.site-nav a[aria-current="page"], .mobile-menu__panel a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: 0.25em; }
+.check-in-scanner { margin: 1rem 0 1.5rem; }
+.check-in-scanner video { display: block; width: 100%; max-width: 28rem; aspect-ratio: 1; object-fit: cover; margin: 0 0 0.75rem; border-radius: 0.5rem; background: #000; }
+.check-in-scanner video[hidden], .check-in-scanner [hidden] { display: none; }
+.check-in-scanner__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .admin-events { display: grid; gap: 1rem; }
 .admin-event { padding-top: 0.5rem; border-top: 1px solid #ecd9a8; }
 .admin-event h2 { margin-top: 0; }
