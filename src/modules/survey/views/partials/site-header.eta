@@ -29,7 +29,7 @@
   <% } %>
       </div>
       <details class="account-menu">
-        <summary aria-label="Account menu"><span class="account-icon" aria-hidden="true"></span></summary>
+        <summary aria-label="Account menu"><svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.5"/><path d="M3 21c0-4.6 4-7.5 9-7.5s9 2.9 9 7.5z"/></svg></summary>
         <div class="account-menu__panel">
 <% if (it.siteAccount) { %>
           <p class="account-menu__name"><%= it.siteAccount.name %></p>

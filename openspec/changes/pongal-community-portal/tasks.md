@@ -28,6 +28,7 @@
 - [x] 3.7 Implement Zelle instructions, an explicit pay-later choice, and payer declaration; verify payment remains pending until organizer confirmation and messaging prevents duplicate payment.
 - [x] 3.8 Implement registration edit/access behavior and status messages; verify pending guest access, confirmed account history, and that no QR pass appears before payment confirmation.
 - [x] 3.9 Add registration service tests confirming every mutation writes a history snapshot and duplicate submissions for the same household/event do not create duplicate active registrations.
+- [x] 3.10 Email the secure registration access link to signed-in households as well as guests when SMTP is configured; verify both paths send exactly one email to the household address.
 
 ## 4. Organizer payment and reporting
 
