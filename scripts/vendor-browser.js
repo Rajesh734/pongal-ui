@@ -1,4 +1,4 @@
-// Regenerates the browser copies of Zod and Alpine (CSP build) in src/public/vendor/.
+// Regenerates the browser copies of Zod, Alpine (CSP build) and jsQR in src/public/vendor/.
 // Run after upgrading either package: npm run vendor
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -28,4 +28,15 @@ const zod = await build({
 writeFileSync(new URL('zod.mjs', out), `/* zod ${version('zod')} (MIT) */\n${zod.outputFiles[0].text}`);
 
 copyFileSync(require.resolve('@alpinejs/csp/dist/module.esm.min.js'), new URL('alpine-csp.mjs', out));
-console.log(`Vendored zod ${version('zod')} and @alpinejs/csp ${version('@alpinejs/csp')} into src/public/vendor/`);
+
+// QR decoder fallback for browsers without BarcodeDetector (iOS Safari, Firefox).
+const jsqr = await build({
+  stdin: { contents: "import jsQR from 'jsqr';\nexport default jsQR;", resolveDir: process.cwd() },
+  bundle: true,
+  format: 'esm',
+  minify: true,
+  write: false,
+  legalComments: 'none',
+});
+writeFileSync(new URL('jsqr.mjs', out), `/* jsqr ${version('jsqr')} (Apache-2.0) */\n${jsqr.outputFiles[0].text}`);
+console.log(`Vendored zod ${version('zod')}, @alpinejs/csp ${version('@alpinejs/csp')} and jsqr ${version('jsqr')} into src/public/vendor/`);

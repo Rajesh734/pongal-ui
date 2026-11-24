@@ -1,0 +1,26 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <h1>Organizer dashboard</h1>
+      <p>Manage Pongal registrations, payment review, volunteers, and event check-in access from the menu.</p>
+      <details>
+        <summary>Legacy interest survey</summary>
+<% if (!it.rows.length) { %>
+      <p class="muted">No surveys have been configured.</p>
+<% } else { %>
+      <div class="admin-events">
+<% it.rows.forEach((row) => { %>
+        <article class="admin-event">
+          <h2><%= row.event.name %></h2>
+          <dl class="summary admin-summary">
+            <dt>State</dt><dd><%= row.state === 'open' ? 'Open' : row.state === 'not_open' ? 'Not open' : 'Closed' %></dd>
+            <dt>Responses</dt><dd><%= row.families %> <%= row.families === 1 ? 'family' : 'families' %></dd>
+            <dt>People</dt><dd><%= row.people %> <%= row.people === 1 ? 'person' : 'people' %></dd>
+          </dl>
+          <p><a class="button" href="/admin/events/<%= row.event.slug %>/responses.csv">Download CSV</a></p>
+        </article>
+<% }) %>
+      </div>
+<% } %>
+      </details>
+    </section>

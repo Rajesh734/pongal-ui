@@ -11,6 +11,7 @@
     "start": "node src/server.js",
     "dev": "node --watch --env-file=.env src/server.js",
     "test": "vitest run",
+    "test:browser": "playwright test",
     "db:generate": "drizzle-kit generate",
     "vendor": "node scripts/vendor-browser.js",
     "survey:remove": "node src/cli/survey-remove.js"
@@ -25,15 +26,19 @@
     "drizzle-orm": "^0.45.4",
     "eta": "^4.6.0",
     "fastify": "^5.12.8",
+    "jose": "^6.2.18",
     "nodemailer": "^10.6.1",
     "pg": "^8.23.1",
+    "qrcode": "^1.5.4",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@alpinejs/csp": "^3.17.5",
+    "@playwright/test": "^1.65.1",
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
+    "jsqr": "^1.4.0",
     "vitest": "^4.1.12"
   }
 }

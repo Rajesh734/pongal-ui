@@ -1,11 +1,57 @@
+<%
+  const navLinks = it.adminPath
+    ? [['/admin', 'Dashboard'], ['/admin/registrations', 'Registrations'], ['/admin/payments', 'Payments'], ['/admin/volunteers', 'Volunteers'], ['/admin/check-in-access', 'Check-in Access'], ['/check-in', 'Scan Passes'], ['/', 'Public site']]
+    : [['/', 'Home'], ['/about', 'About'], ['/register', 'Register']];
+  const navLabel = it.adminPath ? 'Organizer' : 'Main';
+%>
   <header class="site-header">
     <div class="site-header__inner">
+      <details class="mobile-menu">
+        <summary aria-label="Open navigation menu">
+          <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+        </summary>
+        <nav class="mobile-menu__panel" aria-label="<%= navLabel %> mobile navigation">
+<% navLinks.forEach(([href, label]) => { %>
+          <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
+<% }) %>
+        </nav>
+      </details>
+      <div class="site-brand">
 <% if (it.site.logo) { %>
-      <img class="site-logo" src="<%= it.site.logo %>" alt="<%= it.site.name %> logo" width="26" height="56">
+    <img class="site-logo" src="<%= it.site.logo %>" alt="<%= it.site.name %> logo" width="26" height="56">
 <% } %>
-      <div>
+    <div class="site-header__identity">
         <p class="site-name"><%= it.site.name %></p>
         <p class="site-location"><%= it.site.location %></p>
       </div>
+  <% if (it.site.logo) { %>
+    <img class="site-logo site-logo--end" src="<%= it.site.logo %>" alt="" aria-hidden="true" width="26" height="56">
+  <% } %>
+      </div>
+      <details class="account-menu">
+        <summary aria-label="Account menu"><span class="account-icon" aria-hidden="true"></span></summary>
+        <div class="account-menu__panel">
+<% if (it.siteAccount) { %>
+          <p class="account-menu__name"><%= it.siteAccount.name %></p>
+          <a href="/account/profile">Profile</a>
+          <a href="/account/registrations">My Registrations</a>
+<% if (it.canCheckIn) { %>
+          <a href="/check-in">Scan Passes</a>
+<% } %>
+          <form method="post" action="/api/auth/logout">
+            <input type="hidden" name="_csrf" value="<%= it.navCsrfToken ?? '' %>">
+            <button type="submit">Log out</button>
+          </form>
+<% } else { %>
+          <a href="/login">Sign in</a>
+          <a href="/signup">Sign up</a>
+<% } %>
+        </div>
+      </details>
     </div>
+    <nav class="site-nav site-nav--desktop" aria-label="<%= navLabel %> navigation">
+<% navLinks.forEach(([href, label]) => { %>
+        <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
+<% }) %>
+      </nav>
   </header>

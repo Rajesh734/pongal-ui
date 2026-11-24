@@ -177,12 +177,13 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
   const editUrl = (event, token) => `/s/${event.slug}/edit/${token}`;
 
   app.get('/', async (request, reply) => {
-    const at = now();
-    const candidates = (await listEvents(db)).filter((e) => surveyState(e, at) !== 'closed');
-    if (!candidates.length) return message(reply, 'Surveys', m.noOpenSurveys);
-    const current = candidates.reduce((a, b) => (b.surveyOpensAt > a.surveyOpensAt ? b : a));
-    return reply.redirect(`/s/${current.slug}`, 302);
+    const candidates = await listEvents(db);
+    const event = candidates.find((candidate) => candidate.slug === 'pongal-2027' && candidate.configSnapshot?.registration);
+    if (!event) return reply.callNotFound();
+    return reply.view(`${VIEWS}/home.eta`, { title: 'Home', event });
   });
+
+  app.get('/about', async (_request, reply) => reply.view(`${VIEWS}/about.eta`, { title: 'About' }));
 
   app.get('/s/:event', async (request, reply) => {
     const event = await loadEvent(request, reply);

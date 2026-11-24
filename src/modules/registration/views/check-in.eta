@@ -1,0 +1,60 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card">
+      <h1><%= it.title %></h1>
+      <p><%= it.event.name %></p>
+<% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+<% } %>
+      <section class="check-in-scanner" aria-label="QR scanner">
+        <video id="check-in-camera" autoplay muted playsinline hidden></video>
+        <div class="check-in-scanner__actions">
+          <button class="button primary" type="button" id="start-camera">Scan QR code with camera</button>
+          <button class="button" type="button" id="stop-camera" hidden>Stop camera</button>
+        </div>
+        <p id="camera-status" class="muted" aria-live="polite">Tap the button and allow camera access, then point the camera at the household entry pass. You can also enter the pass code manually.</p>
+      </section>
+<%
+  const result = it.result;
+  const tone = !result ? null
+    : result.status === 'ready' ? 'ready'
+    : result.status === 'checked_in' ? 'success'
+    : result.status === 'already_checked_in' ? 'warning'
+    : 'error';
+  const resultMessage = result && result.status !== 'ready' ? it.errorMessages[result.status] ?? it.errorMessages.invalid : null;
+%>
+<% if (result) { %>
+      <section class="check-in-result check-in-result--<%= tone %>" role="<%= tone === 'error' ? 'alert' : 'status' %>">
+<% if (tone === 'ready') { %>
+        <h2>Review household</h2>
+<% } else { %>
+        <p class="check-in-result__message"><%= resultMessage %></p>
+<% } %>
+<% if (result.household) { %>
+        <p class="check-in-result__household"><%= result.household.name %> - <%= result.attendees?.length ?? 0 %> <%= result.attendees?.length === 1 ? 'attendee' : 'attendees' %></p>
+<% } %>
+<% if (result.attendees?.length) { %>
+        <ul>
+<% result.attendees.forEach((attendee) => { %>
+          <li><%= attendee.name %> (<%= it.ageGroupLabels[attendee.ageBand] ?? attendee.ageBand %>)</li>
+<% }) %>
+        </ul>
+<% } %>
+<% if (tone === 'ready') { %>
+        <form method="post" action="/check-in/confirm">
+          <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+          <input type="hidden" name="token" value="<%= result.token ?? '' %>">
+          <button class="button primary" type="submit">Check in household</button>
+        </form>
+<% } %>
+      </section>
+<% } %>
+      <form method="post" action="/check-in/preview" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="manual-token">Enter pass code manually</label>
+          <input id="manual-token" name="token" autocomplete="off" required>
+        </fieldset>
+        <button class="button" type="submit">Look up pass</button>
+      </form>
+    </section>
+    <script type="module" src="/public/js/check-in.js"></script>

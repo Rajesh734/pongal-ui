@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createMailer, editLinkEmail } from '../src/modules/survey/mailer.js';
+import { createMailer, editLinkEmail, registrationAccessEmail, verificationEmail } from '../src/modules/survey/mailer.js';
 import { validForm } from './helpers.js';
 import { surveyApp, TOKEN_PATH } from './survey-app.js';
 
@@ -114,5 +114,54 @@ describe('edit-link email', () => {
     const { html } = editLinkEmail({ eventName: 'A <b>', link: 'https://x/"y', closesText: 'soon' });
     expect(html).not.toContain('<b>');
     expect(html).not.toContain('"y');
+  });
+});
+
+describe('household verification email', () => {
+  it('sends an escaped single-use verification link', async () => {
+    const transport = stubTransport();
+    const mailer = createMailer(SMTP, { transport, logger: captureLogger() });
+    const link = 'https://portal.example.org/auth/verify/token?x=<value>';
+
+    await expect(mailer.sendVerificationEmail({ to: 'priya@example.com', link })).resolves.toBe(true);
+    expect(transport.sent).toHaveLength(1);
+    expect(transport.sent[0].subject).toBe('Verify your Pongal family account');
+    expect(transport.sent[0].text).toContain(link);
+    expect(transport.sent[0].html).toContain('&#60;value&#62;');
+    expect(transport.sent[0].text).toContain('expires in 24 hours');
+  });
+
+  it('uses the same recipient limit for verification emails', async () => {
+    const transport = stubTransport();
+    const mailer = createMailer(SMTP, { transport, logger: captureLogger() });
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await mailer.sendVerificationEmail({ to: 'priya@example.com', link: 'https://portal.example.org/verify' });
+    }
+    expect(transport.sent).toHaveLength(3);
+  });
+
+  it('escapes verification links in the HTML body', () => {
+    const { html } = verificationEmail({ link: 'https://portal.example.org/"quoted"' });
+    expect(html).not.toContain('"quoted"');
+  });
+});
+
+describe('registration access email', () => {
+  it('sends a private guest link without registration details', async () => {
+    const transport = stubTransport();
+    const mailer = createMailer(SMTP, { transport, logger: captureLogger() });
+    const link = 'https://portal.example.org/register/access/opaque-token';
+    await expect(mailer.sendRegistrationAccessEmail({ to: 'priya@example.com', eventName: 'Pongal 2027', link })).resolves.toBe(true);
+    expect(transport.sent[0].to).toBe('priya@example.com');
+    expect(transport.sent[0].subject).toBe('Pongal 2027 registration access');
+    expect(transport.sent[0].text).toContain(link);
+    expect(transport.sent[0].text).toContain('Keep this link private.');
+    expect(transport.sent[0].text).not.toContain('attendee');
+  });
+
+  it('escapes event names in the HTML body', () => {
+    const { html } = registrationAccessEmail({ eventName: 'Pongal <2027>', link: 'https://portal.example.org/access' });
+    expect(html).toContain('Pongal &#60;2027&#62;');
+    expect(html).not.toContain('<2027>');
   });
 });

@@ -21,11 +21,12 @@ Event YAML gets an optional `theme` validated as an enum (`pongal` only for now)
 - *Theme by date or slug* - rejected: hidden coupling; config is already the source of event settings.
 - *Global theme for the whole site* - rejected: the site will host other events.
 
-### D2. Realistic hero image with HTML overlay
-The provided realistic banner is stored as a same-origin `src/public/img/pongal-hero.webp` or optimized PNG, with a matching `<img>` alt text. `banner.eta` renders the image in a stable aspect-ratio frame and places the event greeting and name in an HTML overlay. On mobile, `object-fit: cover` uses a focal point that keeps the pot and sugarcane visible; on desktop, the full composition is shown. The supplied 2026 wording is not used as page text; the HTML overlay supplies `Pongal 2027`.
+### D2. Supplied artwork with HTML overlay
+Use the supplied realistic banner as the production artwork and derive two optimized assets: `pongal-hero-desktop.webp` and `pongal-hero-mobile.webp`. `banner.eta` uses a `<picture>` element with the portrait source below 768 px and desktop source above it, then places the event greeting and name in an HTML overlay. This keeps Tamil text sharp and avoids baking a stale year into the image.
 - *Hand-drawn SVG as the primary hero* - rejected: the browser review showed it looked like children's artwork rather than a realistic celebration.
 - *External image URL* - rejected: adds an availability, privacy and CSP dependency.
 - *Text baked into the image* - rejected: cannot update the year or remain accessible/selectable.
+- *One image for every viewport* - rejected: the tall mobile crop makes the desktop banner huge and the wide desktop crop loses the pot on phones.
 
 ### D3. Site identity in one module
 `src/core/site.js` exports `SITE_NAME = 'Eastcoast Tamil Community'`, `SITE_LOCATION = 'New Hampshire, USA'` and a `logoPath` resolved once at startup: `/public/img/logo.svg` if it exists under `src/public/img/`, else `/public/img/logo.png` if that exists, else `null`. A shared `views/partials/site-header.eta` renders it; the logo is shown at most 56 px high and is expected on a transparent background.
@@ -54,8 +55,13 @@ Tamil uses the system font stack (`"Noto Sans Tamil", "Tamil Sangam MN", "Latha"
 
 ## Risks / Trade-offs
 
-- [The provided image contains 2026-era or baked-in wording] -> Use it only as visual artwork; render the 2027 greeting and event name in HTML over the image.
-- [A large realistic image slows WhatsApp visitors] -> Require an optimized same-origin asset of at most 250 KB and verify its dimensions and file size.
+- [The supplied image contains baked-in wording] -> Use it only as visual artwork; render the 2027 greeting and event name in HTML over the image.
+- [A large realistic image slows WhatsApp visitors] -> Require each optimized same-origin asset to be at most 250 KB and verify dimensions and file size.
+
+### D8. Build summary gives deploy-ready values
+The Build workflow writes a Markdown section containing `IMAGE_REF=ghcr.io/rajesh734/pongal-ui/community-site:sha-<7-char-commit>` and `image_tag=sha-<7-char-commit>`. The full reference is for inspection and the exact `image_tag` value is copyable into the manual Deploy workflow; no secrets are printed.
+- *Only print the commit SHA* - rejected: the operator must reconstruct the GHCR reference manually.
+- *Only print the full image reference* - rejected: the manual workflow input expects the tag without the registry/repository.
 - [Tamil wording errors] -> The exact strings are in the spec; organizers proof-read them in review.
 - [Older Android without a Tamil font] -> Very rare today; text falls back to the system's Tamil font, and English headings are always present.
 - [Live survey disruption] -> Only markup structure around fields and CSS change; the existing page tests must keep passing unchanged.

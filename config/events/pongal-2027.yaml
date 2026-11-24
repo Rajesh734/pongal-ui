@@ -39,3 +39,24 @@ survey:
     - { code: usd_25, label: "$25" }
     - { code: flexible, label: "Flexible" }
   comments_max: 500
+registration:
+  prices_cents:
+    age_11_plus: 3500
+    age_5_to_10: 2500
+    under_5: 0
+  max_performances: 2
+  performance_duration_minutes:
+    solo: 4
+    group_2_to_4: 5
+    group_5_plus: 7
+  zelle_phone: "+16039700000"
+  volunteer_roles:
+    - { code: culturals, label: "Culturals" }
+    - { code: food_serving_setup, label: "Food serving/setup" }
+    - { code: stage_setup, label: "Stage setup" }
+    - { code: compere_hosting, label: "Compere/hosting" }
+    - { code: decoration, label: "Decoration" }
+    - { code: registration_desk, label: "Registration desk" }
+    - { code: photography, label: "Photography" }
+    - { code: cleanup, label: "Cleanup" }
+    - { code: music_dj, label: "Music/DJ" }

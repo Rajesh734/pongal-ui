@@ -1,0 +1,34 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card auth-card">
+      <h1><%= it.title %></h1>
+<% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+<% } %>
+<% if (it.googleClientId) { %>
+      <div id="g_id_onload" data-client_id="<%= it.googleClientId %>" data-login_uri="<%= it.googleLoginUri %>" data-auto_prompt="false"></div>
+      <div class="g_id_signin" data-type="standard" data-size="large" data-width="320" data-text="signup_with" data-shape="rectangular"></div>
+      <script src="https://accounts.google.com/gsi/client" async defer></script>
+      <p class="muted">Or sign up with email</p>
+<% } %>
+      <form method="post" action="/api/auth/signup" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="firstName">First name</label>
+          <input id="firstName" name="firstName" autocomplete="given-name" required minlength="1" maxlength="75">
+        </fieldset>
+        <fieldset class="field">
+          <label for="lastName">Last name</label>
+          <input id="lastName" name="lastName" autocomplete="family-name" required minlength="1" maxlength="75">
+        </fieldset>
+        <fieldset class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
+        </fieldset>
+        <fieldset class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" required minlength="8" maxlength="256">
+        </fieldset>
+        <button class="button primary" type="submit">Sign up</button>
+      </form>
+      <p>Already have an account? <a href="/login">Log in</a></p>
+    </section>

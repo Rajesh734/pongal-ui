@@ -1,0 +1,45 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <h1>Payments</h1>
+      <p class="muted">Payments awaiting organizer verification</p>
+    <% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+    <% } %>
+      <form method="get" action="/admin/payments" class="admin-filters">
+        <label for="event">Event</label>
+        <select id="event" name="event">
+<% it.events.forEach((event) => { %>
+          <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
+<% }) %>
+        </select>
+        <button class="button" type="submit">Filter</button>
+      </form>
+<% if (!it.rows.length) { %>
+      <p class="muted">No payments are waiting for review.</p>
+<% } else { %>
+      <div class="table-scroll table-stack">
+        <table>
+          <thead><tr><th>Household</th><th>Amount due</th><th>Payer</th><th>Zelle reference</th><th>Declared</th><th>Action</th></tr></thead>
+          <tbody>
+<% it.rows.forEach((row) => { %>
+            <tr>
+              <td data-label="Household"><%= row.registration.contactName %> (<%= row.registration.contactEmail %>)</td>
+              <td data-label="Amount due">$<%= (row.payment?.amountCents ?? row.registration.totalCents) / 100 %></td>
+              <td data-label="Payer"><%= row.payment?.payerName ?? 'Not submitted' %></td>
+              <td data-label="Zelle reference"><%= row.payment?.zelleReference ?? 'Not submitted' %></td>
+              <td data-label="Declared"><%= row.payment?.declaredAt ? row.payment.declaredAt.toISOString() : 'Not submitted' %></td>
+              <td data-label="Action">
+                <form method="post" action="/admin/payments/<%= row.registration.id %>/confirm?event=<%= it.event.slug %>">
+                  <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+                  <button class="button" type="submit">Confirm payment</button>
+                </form>
+              </td>
+            </tr>
+<% }) %>
+          </tbody>
+        </table>
+      </div>
+<% } %>
+      <p class="muted">Confirm a transfer only after checking the receiving Zelle account.</p>
+    </section>

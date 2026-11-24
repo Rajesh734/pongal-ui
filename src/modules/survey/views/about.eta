@@ -1,0 +1,6 @@
+<% layout('./layout', { title: it.title }) %>
+    <section class="card">
+      <h1>About Eastcoast Tamil Community</h1>
+      <p>Eastcoast Tamil Community is based in New Hampshire, USA.</p>
+      <p>This portal brings our community together to celebrate Pongal and coordinate household registration for the event.</p>
+    </section>

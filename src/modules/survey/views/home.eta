@@ -1,0 +1,7 @@
+<% layout('./layout', { title: it.title }) %>
+    <section class="card home-page">
+      <h1><%= it.event.name %></h1>
+      <p>Celebrate Pongal with the Eastcoast Tamil Community.</p>
+      <p>Register once for your household and add the family members who will attend.</p>
+      <a class="button primary" href="/register">Register your household</a>
+    </section>

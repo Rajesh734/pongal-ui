@@ -1,0 +1,54 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <h1>Check-in Access</h1>
+      <p>Approved volunteers sign in with their household account and open <a href="/check-in">Scan Passes</a> from the account menu to scan entry pass QR codes. To scan passes yourself, grant access to your own household email.</p>
+    <% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+    <% } %>
+      <form method="get" action="/admin/check-in-access" class="admin-filters">
+        <label for="event">Event</label>
+        <select id="event" name="event">
+<% it.events.forEach((event) => { %>
+          <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
+<% }) %>
+        </select>
+        <button class="button" type="submit">Filter</button>
+      </form>
+<% if (it.event) { %>
+      <form method="post" action="/admin/check-in-access/grant?event=<%= it.event.slug %>">
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="email">Verified household account email</label>
+          <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required>
+        </fieldset>
+        <button class="button" type="submit">Grant check-in access</button>
+      </form>
+<% } %>
+<% if (!it.rows.length) { %>
+      <p class="muted">No check-in volunteers have been approved.</p>
+<% } else { %>
+      <div class="table-scroll table-stack">
+        <table>
+          <thead><tr><th>Household</th><th>Email</th><th>Granted by</th><th>Granted at</th><th>Action</th></tr></thead>
+          <tbody>
+<% it.rows.forEach((row) => { %>
+            <tr>
+              <td data-label="Household"><%= row.household.name %></td>
+              <td data-label="Email"><%= row.household.email %></td>
+              <td data-label="Granted by"><%= row.permission.grantedBy %></td>
+              <td data-label="Granted at"><%= row.permission.grantedAt.toISOString() %></td>
+              <td data-label="Action">
+                <form method="post" action="/admin/check-in-access/<%= row.permission.id %>/revoke?event=<%= it.event.slug %>">
+                  <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+                  <button class="button" type="submit">Revoke</button>
+                </form>
+              </td>
+            </tr>
+<% }) %>
+          </tbody>
+        </table>
+      </div>
+<% } %>
+      <p class="muted">Volunteering does not grant scanner access. Grant and revoke controls will be available here.</p>
+    </section>

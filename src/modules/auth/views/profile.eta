@@ -1,0 +1,28 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card auth-card">
+      <h1><%= it.title %></h1>
+<% if (it.message) { %>
+      <p class="notice" role="status"><%= it.message %></p>
+<% } %>
+      <form method="post" action="/api/auth/profile" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="name">Primary contact name</label>
+          <input id="name" name="name" autocomplete="name" required minlength="2" maxlength="150" value="<%= it.household.name %>">
+        </fieldset>
+        <fieldset class="field">
+          <label for="email">Email</label>
+          <p id="email" class="readonly"><%= it.household.email %></p>
+        </fieldset>
+        <fieldset class="field">
+          <label for="mobileE164">Mobile number (include country code)</label>
+          <input id="mobileE164" name="mobileE164" type="tel" autocomplete="tel" inputmode="tel" pattern="\+[1-9][0-9]{10,12}" maxlength="14" required value="<%= it.household.mobileE164 ?? '' %>">
+        </fieldset>
+        <fieldset class="field">
+          <label for="whatsappE164">WhatsApp number (optional, include country code)</label>
+          <input id="whatsappE164" name="whatsappE164" type="tel" autocomplete="tel" inputmode="tel" pattern="\+[1-9][0-9]{10,12}" maxlength="14" value="<%= it.household.whatsappE164 ?? '' %>">
+        </fieldset>
+        <label class="choice consent"><input type="checkbox" name="whatsappConsent" value="yes" <%= it.household.whatsappConsentAt ? 'checked' : '' %>> <span>Organizers may contact me on WhatsApp about this event.</span></label>
+        <button class="button primary" type="submit">Save profile</button>
+      </form>
+    </section>

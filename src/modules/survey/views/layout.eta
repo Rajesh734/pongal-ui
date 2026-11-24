@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= it.title %></title>
+  <link rel="icon" type="image/svg+xml" href="/public/img/favicon.svg">
+<% if (it.site.logo) { %>
+  <link rel="apple-touch-icon" href="<%= it.site.logo %>">
+<% } %>
   <link rel="stylesheet" href="/public/css/site.css">
 <% if (it.importMap) { %>
   <script type="importmap"><%~ it.importMap %></script>
@@ -23,5 +27,7 @@
   <main class="page">
 <%~ it.body %>
   </main>
+  <script type="module" src="/public/js/navigation.js"></script>
+  <script type="module" src="/public/js/form-validation.js"></script>
 </body>
 </html>

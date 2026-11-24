@@ -8,7 +8,6 @@ import { silentLogger, tempDir } from './helpers.js';
 import { NOV_25, surveyApp, TOKEN_PATH } from './survey-app.js';
 
 const GREETING = 'இனிய பொங்கல் நல்வாழ்த்துக்கள்';
-const HERO = 'src/public/img/pongal-hero.webp';
 
 let ctx;
 afterEach(async () => {
@@ -25,6 +24,7 @@ describe('site header', () => {
     expect(header).toContain('Eastcoast Tamil Community');
     expect(header).toContain('New Hampshire, USA');
     expect(header).not.toContain('<img');
+    expect((await ctx.app.inject('/s/pongal-2027')).body).toContain('<link rel="icon" type="image/svg+xml" href="/public/img/favicon.svg">');
   });
 
   it('Logo added', async () => {
@@ -33,8 +33,19 @@ describe('site header', () => {
     ctx = await surveyApp({ imgDir: dir });
     const header = headerOf((await ctx.app.inject('/s/pongal-2027')).body);
     expect(header).toMatch(/<img class="site-logo" src="\/public\/img\/logo.png" alt="Eastcoast Tamil Community logo"/);
+    expect((await ctx.app.inject('/s/pongal-2027')).body).toContain('<link rel="icon" type="image/svg+xml" href="/public/img/favicon.svg">');
+    expect((await ctx.app.inject('/s/pongal-2027')).body).toContain('<link rel="apple-touch-icon" href="/public/img/logo.png">');
     expect(header.indexOf('<img')).toBeLessThan(header.indexOf('site-name'));
     expect(header).toContain('New Hampshire, USA');
+    expect(header).toContain('<details class="mobile-menu">');
+    expect(header).toContain('class="menu-icon"');
+    expect(header).toContain('<nav class="site-nav site-nav--desktop" aria-label="Main navigation">');
+    expect(header).toContain('<a href="/about">About</a>');
+    expect(header).toContain('<details class="account-menu">');
+    expect(header).toContain('<a href="/login">Sign in</a>');
+    expect(header).toContain('<a href="/signup">Sign up</a>');
+    expect(header).not.toContain('/s/');
+    expect(header).not.toContain('scaleX(-1)');
   });
 
   it('Both formats present', async () => {
@@ -54,30 +65,61 @@ describe('site header', () => {
     expect(readFileSync('src/public/img/logo.png').readUInt32BE(20)).toBeLessThanOrEqual(168); // PNG IHDR height
     expect(readFileSync('src/public/img/logo.svg', 'utf8')).not.toMatch(/<script|<image|\son\w+=/i);
   });
+
+  it('Favicon uses the site background color', () => {
+    const favicon = readFileSync('src/public/img/favicon.svg', 'utf8');
+    expect(favicon).toContain('fill="#fff8e7"');
+    expect(favicon).not.toMatch(/<script|<image|\son\w+=/i);
+  });
 });
 
 describe('Pongal banner', () => {
-  it('Pongal 2027 hero', async () => {
+  it('Home is the portal entry point and avoids unconfirmed event dates', async () => {
+    ctx = await surveyApp();
+    const { statusCode, body } = await ctx.app.inject('/');
+    expect(statusCode).toBe(200);
+    expect(body).toContain('<h1>Pongal 2027</h1>');
+    expect(body).toContain('href="/register">Register your household</a>');
+    expect(body).not.toContain('/s/pongal-2027');
+    expect(body).not.toContain('Saturday, Jan 16');
+    expect(body).not.toContain('Sunday, Jan 17');
+  });
+
+  it('About page uses only confirmed community details', async () => {
+    ctx = await surveyApp();
+    const { statusCode, body } = await ctx.app.inject('/about');
+    expect(statusCode).toBe(200);
+    expect(body).toContain('<h1>About Eastcoast Tamil Community</h1>');
+    expect(body).toContain('New Hampshire, USA');
+    expect(body).not.toContain('Saturday, Jan 16');
+    expect(body).not.toContain('Sunday, Jan 17');
+  });
+
+  it('Pongal 2027 banner', async () => {
     ctx = await surveyApp();
     const { body } = await ctx.app.inject('/s/pongal-2027');
     expect(body).toContain('<body class="theme-pongal">');
-    expect(body).toContain('<img class="festive-hero__image" src="/public/img/pongal-hero.webp"');
-    expect(body).toContain('alt="Pongal celebration with a decorated Pongal pot, sugarcane, flowers, kolam and decorated bulls"');
+    expect(body).toContain('data-motif="traditional-dress"');
+    expect(body).toContain('data-motif="sugarcane"');
+    expect(body).toContain('data-motif="sun"');
+    expect(body).toContain('data-motif="pongal-pot"');
     expect(body).toContain(`<p class="festive-banner__greeting" lang="ta">${GREETING}</p>`);
     expect(body).toContain('<p class="festive-banner__event">Pongal 2027</p>');
-    expect(body).not.toContain('data-motif=');
+    expect(body).not.toContain('pongal-hero.webp');
+    expect(body).not.toContain('pongal-hero-mobile.webp');
+    expect(body).not.toContain('pongal-hero-desktop.webp');
   });
 
   it('Screen reader', async () => {
     ctx = await surveyApp();
     const { body } = await ctx.app.inject('/s/pongal-2027');
-    expect(body).toContain('alt="Pongal celebration with a decorated Pongal pot, sugarcane, flowers, kolam and decorated bulls"');
     expect(body).toContain(`<p class="festive-banner__greeting" lang="ta">${GREETING}</p>`);
+    expect(body).toContain('aria-hidden="true"');
   });
 
   it('Page weight', () => {
-    expect(statSync(HERO).size).toBeLessThanOrEqual(250 * 1024);
     expect(readFileSync('src/modules/survey/views/themes/pongal/banner.eta', 'utf8')).not.toMatch(/https?:/);
+    expect(readFileSync('src/modules/survey/views/themes/pongal/banner.eta', 'utf8')).not.toMatch(/pongal-hero.*\.webp/);
   });
 
   it('Event without a theme', async () => {

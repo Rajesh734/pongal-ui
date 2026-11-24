@@ -1,0 +1,53 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <h1>Registrations</h1>
+      <form method="get" action="/admin/registrations" class="admin-filters">
+        <label for="event">Event</label>
+        <select id="event" name="event">
+<% it.events.forEach((event) => { %>
+          <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
+<% }) %>
+        </select>
+        <label for="status">Payment status</label>
+        <select id="status" name="status">
+          <option value="all" <%= it.status === 'all' ? 'selected' : '' %>>All</option>
+          <option value="payment_pending" <%= it.status === 'payment_pending' ? 'selected' : '' %>>Payment pending</option>
+          <option value="confirmed" <%= it.status === 'confirmed' ? 'selected' : '' %>>Confirmed</option>
+          <option value="cancelled" <%= it.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+        </select>
+        <button class="button" type="submit">Filter</button>
+      </form>
+<% if (!it.rows.length) { %>
+      <p class="muted">No registrations match these filters.</p>
+<% } else { %>
+      <p><a class="button" href="/admin/registrations.csv?event=<%= it.event.slug %>&amp;status=<%= it.status %>">Export CSV</a></p>
+      <p class="table-scroll-hint muted" aria-hidden="true">Scroll sideways to see all columns &rarr;</p>
+      <div class="table-scroll table-scroll--wide" tabindex="0" role="region" aria-label="Registrations table">
+        <table>
+          <thead><tr><th>Household</th><th>Attendee</th><th>Age group</th><th>Performances</th><th>Amount</th><th>Payment</th></tr></thead>
+<% it.rows.forEach((row) => { const span = Math.max(row.attendees.length, 1); %>
+          <tbody class="household-group">
+<% (row.attendees.length ? row.attendees : [null]).forEach((attendee, index) => { %>
+            <tr>
+<% if (index === 0) { %>
+              <td rowspan="<%= span %>" class="household-cell">
+                <strong><%= row.registration.contactName %></strong>
+                <span class="household-cell__email"><%= row.registration.contactEmail %></span>
+              </td>
+<% } %>
+              <td><%= attendee?.name ?? '' %></td>
+              <td><%= attendee ? it.ageGroupLabels[attendee.ageBand] ?? attendee.ageBand : '' %></td>
+<% if (index === 0) { %>
+              <td rowspan="<%= span %>"><%= row.performances.map((performance) => performance.title + ' (' + performance.durationMinutes + ' min)').join('; ') || 'None' %></td>
+              <td rowspan="<%= span %>">$<%= (row.registration.totalCents / 100).toFixed(2) %></td>
+              <td rowspan="<%= span %>"><%= row.payment?.status ?? 'pending' %></td>
+<% } %>
+            </tr>
+<% }) %>
+          </tbody>
+<% }) %>
+        </table>
+      </div>
+<% } %>
+    </section>

@@ -1,0 +1,56 @@
+<% layout('../../survey/views/layout', { title: it.title }) %>
+    <section class="card admin-home">
+      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
+      <h1>Volunteers</h1>
+      <form method="get" action="/admin/volunteers" class="admin-filters">
+        <label for="event">Event</label>
+        <select id="event" name="event">
+<% it.events.forEach((event) => { %>
+          <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
+<% }) %>
+        </select>
+        <label for="role">Volunteer role</label>
+        <select id="role" name="role">
+          <option value="all" <%= it.roleFilter === 'all' ? 'selected' : '' %>>All roles</option>
+<% it.roleOptions.forEach((role) => { %>
+          <option value="<%= role.code %>" <%= it.roleFilter === role.code ? 'selected' : '' %>><%= role.label %></option>
+<% }) %>
+        </select>
+        <button class="button" type="submit">Filter</button>
+      </form>
+<% if (!it.rows.length) { %>
+      <p class="muted">No attendees have volunteered yet.</p>
+<% } else { %>
+      <p class="table-scroll-hint muted" aria-hidden="true">Scroll sideways to see all columns &rarr;</p>
+      <div class="table-scroll table-scroll--wide" tabindex="0" role="region" aria-label="Volunteers table">
+        <table>
+          <thead><tr><th>Household</th><th>Attendee</th><th>Age group</th><th>Roles</th></tr></thead>
+<%
+  const groups = [];
+  it.rows.forEach((row) => {
+    const last = groups.at(-1);
+    if (last?.registrationId === row.registrationId) last.rows.push(row);
+    else groups.push({ registrationId: row.registrationId, rows: [row] });
+  });
+%>
+<% groups.forEach((group) => { %>
+          <tbody class="household-group">
+<% group.rows.forEach((row, index) => { %>
+            <tr>
+<% if (index === 0) { %>
+              <td rowspan="<%= group.rows.length %>" class="household-cell">
+                <strong><%= row.householdName %></strong>
+                <span class="household-cell__email"><%= row.householdEmail %></span>
+              </td>
+<% } %>
+              <td><%= row.attendeeName %></td>
+              <td><%= row.ageGroup %></td>
+              <td><%= row.roles.join(', ') %></td>
+            </tr>
+<% }) %>
+          </tbody>
+<% }) %>
+        </table>
+      </div>
+<% } %>
+    </section>

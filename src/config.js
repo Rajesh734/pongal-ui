@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { ConfigError } from './core/errors.js';
 
-const SECRETS = ['DATABASE_PASSWORD', 'EDIT_TOKEN_KEY', 'TURNSTILE_SECRET', 'SMTP_PASS'];
+const SECRETS = ['DATABASE_PASSWORD', 'EDIT_TOKEN_KEY', 'QR_PASS_ENCRYPTION_KEY', 'TURNSTILE_SECRET', 'SMTP_PASS'];
 
 const PORT_MESSAGE = 'must be a whole number between 1 and 65535';
 const port = z
@@ -12,10 +12,21 @@ const port = z
   .refine((n) => n >= 1 && n <= 65535, PORT_MESSAGE);
 
 const text = z.string().min(1);
+const qrEncryptionKey = z
+  .string()
+  .regex(/^[A-Za-z0-9+/]{43}=$/)
+  .refine((value) => Buffer.from(value, 'base64').length === 32, 'must decode to exactly 32 bytes')
+  .optional();
+const httpUrl = z
+  .string()
+  .url()
+  .refine((value) => ['http:', 'https:'].includes(new URL(value).protocol), 'must use HTTP or HTTPS');
 
 const base = z.object({
   PORT: port.default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  APP_BASE_URL: httpUrl.optional(),
+  GOOGLE_CLIENT_ID: text.optional(),
   DB_DRIVER: z.enum(['pglite', 'postgres']),
   PGLITE_DATA_DIR: text.optional(),
   DATABASE_HOST: text.optional(),
@@ -25,6 +36,7 @@ const base = z.object({
   DATABASE_PASSWORD: text.optional(),
   BACKUP_DIR: text.optional(),
   EDIT_TOKEN_KEY: text,
+  QR_PASS_ENCRYPTION_KEY: qrEncryptionKey,
   TURNSTILE_SITE_KEY: text.optional(),
   TURNSTILE_SECRET: text.optional(),
   SMTP_HOST: text.optional(),
@@ -34,9 +46,16 @@ const base = z.object({
   SMTP_PASS: text.optional(),
   CF_ACCESS_TEAM_DOMAIN: text.optional(),
   CF_ACCESS_AUD: text.optional(),
+  ADMIN_DEV_EMAIL: z.string().trim().email().optional(),
 });
 
 const schema = base.superRefine((cfg, ctx) => {
+  if (cfg.ADMIN_DEV_EMAIL && cfg.NODE_ENV !== 'development') {
+    ctx.addIssue({ code: 'custom', path: ['ADMIN_DEV_EMAIL'], message: 'only allowed when NODE_ENV=development' });
+  }
+  if (cfg.NODE_ENV === 'production' && !cfg.QR_PASS_ENCRYPTION_KEY) {
+    ctx.addIssue({ code: 'custom', path: ['QR_PASS_ENCRYPTION_KEY'], message: 'required' });
+  }
   if (cfg.DB_DRIVER !== 'postgres') return;
   for (const key of ['DATABASE_HOST', 'DATABASE_NAME', 'DATABASE_USER', 'DATABASE_PASSWORD']) {
     if (!cfg[key]) ctx.addIssue({ code: 'custom', path: [key], message: 'required' });

@@ -1,6 +1,12 @@
-ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data/ present # Runbook: deploy community-site on the Synology NAS
+ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data/ present
 
-The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` production): the tunnel reaches it through `localhost`, LAN devices cannot. Data lives in an embedded PGlite database in `data/pglite`, with nightly backups in `data/backups`.
+# Runbook: deploy community-site on the Synology NAS
+
+The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` production): the tunnel reaches it through `localhost`, LAN devices cannot. PostgreSQL 18 Alpine runs separately in `/volume1/docker/kalanjiyam`; app containers join its internal `kalanjiyam-net` with no published database port. The old `data/pglite` directory is retained until its data-migration decision is complete.
+
+For the completed PostgreSQL installation and app connection procedure, see the [PostgreSQL 18 NAS runbook](runbooks/2026-11-23-postgresql-18-nas.md). The app uses the existing `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, and `DATABASE_PASSWORD_FILE` settings. Keep this repository's `drizzle.config.js` and `drizzle/` migrations; do not copy the alternate migration path from the original setup notes.
+
+For a live outage involving an unhealthy container, Turnstile errors, unreadable secret files, or a missing `IMAGE_TAG`, use the focused [Turnstile and NAS recovery runbook](runbooks/2026-11-22-turnstile-nas-recovery.md).
 
 How releases flow:
 
@@ -20,13 +26,15 @@ Sections 1-6 are one-time setup. Run NAS commands over SSH as an administrator (
     compose.yaml                copied from the repository by every deploy
     .env                        APP_ENV, HOST_PORT, non-secret settings
     .deployed-tag               image tag currently running (written by deploys)
-    secrets/                    owner 1000, mode 711; files mode 400
+      secrets/                    owner 1000, mode 711; files mode 400
+        database_password        PostgreSQL app-role password (per environment)
       edit_token_key
+      qr_pass_encryption_key
       turnstile_secret
       smtp_pass
     data/                       owner 1000, mode 700
-      pglite/                   live database (created by the app)
-      backups/                  nightly pglite-YYYY-MM-DD.tar.gz (newest 14 kept)
+      pglite/                   retained legacy data; not used in PostgreSQL mode
+      backups/                  legacy PGlite backups, if present
       pre-deploy/<tag>/         database copy taken before each deploy (newest 3 kept)
 ```
 
@@ -47,6 +55,12 @@ Secrets never go in `.env`, `compose.yaml`, GitHub or the repository. Use differ
 ```sh
 cd /volume1/platform/docker/prod/community-site     # repeat for non-prod
 
+# PostgreSQL app-role password (the DB stays on kalanjiyam-net)
+read -rs DBP && printf '%s' "$DBP" > secrets/database_password && unset DBP
+
+# Dedicated key for encrypting recoverable QR pass tokens. Keep a protected recovery copy.
+openssl rand -base64 32 > secrets/qr_pass_encryption_key
+
 # Random key for signing survey edit links
 openssl rand -base64 48 > secrets/edit_token_key
 
@@ -58,12 +72,14 @@ read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
 # No SMTP yet? Create the file empty instead; the app treats it as not set:
 # : > secrets/smtp_pass
 
-chown -R 1000:1000 secrets data
+chown -R 1000:1000 secrets data   # replace with the container's numeric UID:GID if different
 chmod 700 data
 chmod 711 secrets   # deploy user may resolve the paths for Compose, but not list or read them
 chmod 400 secrets/*
 ls -l secrets   # each file: -r-------- 1 1000 1000
 ```
+
+The `1000:1000` values are examples, not a guaranteed NAS account or group name. Docker checks the numeric UID/GID used by the image. If a secret is unreadable, follow the recovery runbook to obtain the IDs with `docker exec`, then use `chown UID:GID`; do not assume `deploy:deploy` exists as a group.
 
 If a secret file is unreadable, the container stops with `Cannot read secret file for <NAME>: <path>` and the deploy rolls back.
 
@@ -74,6 +90,13 @@ Create `.env` in each environment folder (owner `<deploy-user>`). Do not add any
 ```sh
 APP_ENV=prod                      # non-prod in the non-prod folder; names the container community-site-<APP_ENV>
 HOST_PORT=3100                    # 3101 in the non-prod folder; bound to 127.0.0.1 only
+DB_DRIVER=postgres
+DATABASE_HOST=kalanjiyam
+DATABASE_PORT=5432
+DATABASE_NAME=samugam              # production; use a separate DB for non-prod
+DATABASE_USER=samugam_app          # production; use a separate role for non-prod
+APP_BASE_URL=https://<public-hostname>
+GOOGLE_CLIENT_ID=<Google client ID>
 TURNSTILE_SITE_KEY=<public site key from Cloudflare Turnstile>
 SMTP_HOST=<smtp host>
 SMTP_PORT=587
@@ -83,11 +106,21 @@ CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com
 CF_ACCESS_AUD=<Access application AUD tag>
 ```
 
-Leave the four `SMTP_*` values empty (and `secrets/smtp_pass` empty) to run without email: families still see their edit link on screen. Email is only sent when all four values and the password are set.
+The production database is `samugam` with login `samugam_app`. Do not point non-production at that database. Create a separate non-prod database and role with the commands in `docs/runbooks/2026-11-23-postgresql-18-nas.md` (section 3), then set `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app` in non-prod `.env`. Store each environment's own database password in `secrets/database_password`.
 
-### Optional: Gmail for edit-link emails
+Compose mounts that secret as `/run/secrets/database_password`; it passes `DATABASE_PASSWORD_FILE` to the app, not the password itself. The app expects separate `DATABASE_*` settings, not the `DATABASE_URL` shown in the original Step 10 example. Keep the existing repository Drizzle configuration and `drizzle/` migrations. Migrations run at app startup; there is no `npm run seed` command.
 
-The site can email each family its edit link through a Gmail account (about 500 recipients a day; at most 3 emails per address per hour).
+Leave the SMTP values empty (and `secrets/smtp_pass` empty) to run without email: guest registrations still show their access link on screen, but manual household signup and email verification are unavailable. Email is sent only when `SMTP_HOST`, `SMTP_USER`, `SMTP_FROM`, and `SMTP_PASS` are configured.
+
+### Google sign-in setup
+
+In Google Cloud Console, select the project that owns sign-in, configure the OAuth consent screen, and create an OAuth client ID of type **Web application**. Add the exact public origin from `APP_BASE_URL` to **Authorized JavaScript origins** (scheme, hostname, and port only). Add `<APP_BASE_URL>/api/auth/google` to **Authorized redirect URIs**. For local development with `APP_BASE_URL=http://localhost:3000`, use `http://localhost:3000` and `http://localhost:3000/api/auth/google` respectively. Add test users if the consent screen is in testing mode.
+
+Set `GOOGLE_CLIENT_ID` in each environment's `.env` to that web client ID, then recreate the app container. Do not use a sample or dummy ID; Google rejects origins that are not registered on the client. `APP_BASE_URL` must exactly match the origin used by visitors, including HTTPS and any non-default port.
+
+### Optional: Gmail for account and registration emails
+
+The site can send household verification links and registration confirmation links (for guests and signed-in households) through a Gmail account (about 500 recipients a day; at most 3 emails per address per hour).
 
 1. Sign in to the Gmail account that should send the emails. Turn on **2-Step Verification** (Google Account > Security > 2-Step Verification). App passwords need it.
 2. Create an app password: Google Account > Security > **App passwords** (or <https://myaccount.google.com/apppasswords>). Name it `pongal-ui <environment>`. Google shows a 16-character password once.
@@ -96,7 +129,10 @@ The site can email each family its edit link through a Gmail account (about 500 
    ```sh
    chmod 600 secrets/smtp_pass
    read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
-   chmod 400 secrets/smtp_pass && chown 1000:1000 secrets/smtp_pass
+  chmod 400 secrets/smtp_pass
+  APP_UID=$(docker exec community-site-prod id -u)
+  APP_GID=$(docker exec community-site-prod id -g)
+  chown "$APP_UID:$APP_GID" secrets/smtp_pass
    ```
 
 4. In `.env` set:
@@ -108,9 +144,9 @@ The site can email each family its edit link through a Gmail account (about 500 
    SMTP_FROM="Pongal 2027 <the gmail address>"
    ```
 
-5. Restart: `IMAGE_TAG=$(cat .deployed-tag) docker compose up -d --force-recreate`. Submit the survey once with your own email and check the message "Your Pongal 2027 survey link" arrives and the confirmation page says "We've also emailed this link to ...".
+5. Restart: `IMAGE_TAG=$(cat .deployed-tag) docker compose up -d --force-recreate`. Sign up with an email you can access and confirm the one-time verification link arrives. Guest registrations also send their private access link by email.
 
-To try it locally first: `SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=... SMTP_FROM=... SMTP_PASS_FILE=<file with the app password> DB_DRIVER=pglite EDIT_TOKEN_KEY=dev npm start`, then submit at `http://localhost:3000/s/pongal-2027`.
+To try it locally first, set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER`, `SMTP_FROM`, and `SMTP_PASS` in the ignored `.env` file, then restart with `npm run dev`. Never commit the app password.
 
 If sending fails the response is still saved; the log shows `Edit-link email failed` with the SMTP response code only. To stop emails, revoke the app password in the Google Account (and empty `secrets/smtp_pass`).
 
@@ -230,7 +266,7 @@ curl --max-time 5 http://<nas-ip>:3101/healthz   # from another LAN device: must
 curl http://localhost:3101/healthz              # on the NAS itself: {"status":"ok","db":"ok"}
 ```
 
-On the NAS, check that no secret appears in the container settings (only `*_FILE` paths for `EDIT_TOKEN_KEY`, `TURNSTILE_SECRET` and `SMTP_PASS`):
+On the NAS, check that no secret appears in the container settings (only `*_FILE` paths for `DATABASE_PASSWORD`, `QR_PASS_ENCRYPTION_KEY`, `EDIT_TOKEN_KEY`, `TURNSTILE_SECRET` and `SMTP_PASS`):
 
 ```sh
 docker inspect community-site-prod --format '{{range .Config.Env}}{{println .}}{{end}}'
@@ -238,44 +274,33 @@ docker inspect community-site-prod --format '{{range .Config.Env}}{{println .}}{
 
 ## 7. Off-NAS backups with Hyper Backup
 
-The app writes a consistent snapshot to `data/backups` every night at 02:00 (event time). Back up **that folder only**, never the live `data/pglite` folder.
+PostgreSQL backups are written by the `kalanjiyam-backup` service to `/volume1/docker/kalanjiyam/backups`; the selected Step 6A configuration schedules daily dumps and retains 30 days, 8 weeks, and 12 months. Back up this folder with Hyper Backup. The app's old `data/pglite` directory is retained legacy data and is not the active database after PostgreSQL cutover.
 
 1. Hyper Backup > Create > Data backup task > choose the destination (cloud or USB).
-2. Source: `platform/docker/prod/community-site/data/backups` (add the `non-prod` one too if its data matters).
+2. Source: `docker/kalanjiyam/backups` (includes both databases in the stack's backup list).
 3. Enable **client-side encryption** and store the encryption password in the organizers' password manager.
-4. Schedule: daily at 03:00. Rotation: keep at least 30 versions.
+4. Schedule after the database's daily dump. Rotation: keep at least 30 versions.
+
+Verify the backup container logs report completed database dumps and periodically restore a dump to a temporary database as described in the [PostgreSQL 18 NAS runbook](runbooks/2026-11-23-postgresql-18-nas.md). Do not use the old PGlite tar commands for PostgreSQL.
 
 ## 8. Roll back a deploy
 
-A deploy that does not become healthy rolls itself back. To go back from a healthy but wrong release, run **Actions > Deploy > Run workflow** with the previous tag (shown in the summary of the earlier Deploy run).
+A deploy that does not become healthy rolls the app image back, but it does not roll PostgreSQL schema or data back. The portal migrations are additive; deploy the previous image only when it remains compatible with the applied schema. To go back from a healthy but wrong release, run **Actions > Deploy > Run workflow** with the previous tag (shown in the summary of the earlier Deploy run).
 
-If the bad release changed the database, restore the copy the deploy made just before it started:
-
-```sh
-cd /volume1/platform/docker/prod/community-site     # or non-prod
-IMAGE_TAG=$(cat .deployed-tag) docker compose down
-ls data/pre-deploy                                   # one folder per previous tag, newest 3 kept
-mv data/pglite data/pglite.broken-$(date +%Y%m%d%H%M)
-cp -a data/pre-deploy/<previous-tag> data/pglite
-```
-
-Then run Deploy with `<previous-tag>`. Data written between that deploy and now is lost, so check the timestamps first.
+The deploy script still copies `data/pglite` when present; this is only a legacy PGlite safety copy and does not back up PostgreSQL. If PostgreSQL data needs recovery, use a verified dump from `/volume1/docker/kalanjiyam/backups`. Restore to a temporary database first and validate it before changing the live database; do not overwrite `samugam` or `samugam_nonprod` based only on a failed app deploy.
 
 ## 9. Restore from a nightly backup
 
+The PostgreSQL 18 backup service produces database dumps under `/volume1/docker/kalanjiyam/backups`. Test a restore into a temporary database first:
+
 ```sh
-cd /volume1/platform/docker/prod/community-site     # or non-prod
-export IMAGE_TAG=$(cat .deployed-tag)
-docker compose down
-mv data/pglite data/pglite.broken-$(date +%Y%m%d%H%M)
-mkdir data/pglite
-tar -xzf data/backups/pglite-YYYY-MM-DD.tar.gz -C data/pglite
-chown -R 1000:1000 data/pglite
-docker compose up -d
-docker inspect -f '{{.State.Health.Status}}' community-site-prod   # healthy after ~30 s
+docker exec -it kalanjiyam psql -U postgres -c "CREATE DATABASE restore_test OWNER samugam_app;"
+gunzip -c /volume1/docker/kalanjiyam/backups/last/samugam-latest.sql.gz | docker exec -i kalanjiyam psql -U postgres -d restore_test
+docker exec -it kalanjiyam psql -U postgres -d restore_test -c '\dt'
+docker exec -it kalanjiyam psql -U postgres -c "DROP DATABASE restore_test;"
 ```
 
-Remove the `pglite.broken-*` folder only after checking the restored data.
+The legacy PGlite tar files, if any, are separate from these PostgreSQL dumps. Do not remove `data/pglite` until the data-migration decision is complete.
 
 ## 10. Rotate a secret
 
@@ -283,7 +308,10 @@ Remove the `pglite.broken-*` folder only after checking the restored data.
 cd /volume1/platform/docker/prod/community-site     # or non-prod
 chmod 600 secrets/smtp_pass
 read -rs SP && printf '%s' "$SP" > secrets/smtp_pass && unset SP
-chmod 400 secrets/smtp_pass && chown 1000:1000 secrets/smtp_pass
+chmod 400 secrets/smtp_pass
+APP_UID=$(docker exec community-site-prod id -u)
+APP_GID=$(docker exec community-site-prod id -g)
+chown "$APP_UID:$APP_GID" secrets/smtp_pass
 export IMAGE_TAG=$(cat .deployed-tag)
 docker compose up -d --force-recreate
 ```

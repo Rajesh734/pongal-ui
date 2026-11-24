@@ -6,17 +6,25 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import view from '@fastify/view';
 import { Eta } from 'eta';
+import { and, eq, isNull } from 'drizzle-orm';
 import { formatConfig, loadConfig } from './config.js';
 import { clientIp, turnstileEnabled, usesTurnstileTestKeys } from './core/abuse.js';
 import { scheduleBackups } from './core/backup.js';
 import { loadEventConfigs } from './core/event-config.js';
 import { healthRoutes } from './core/health.js';
+import { CSRF_COOKIE, cookieValue, issueCsrfToken } from './core/csrf.js';
 import { genReqId, loggerOptions, registerRequestLogging } from './core/logger.js';
 import { findLogo, SITE_LOCATION, SITE_NAME } from './core/site.js';
 import { createDatabase } from './db/index.js';
+import { checkInPermissions } from './db/schema/index.js';
+import { AGE_GROUP_LABELS } from './shared/registration-pricing.js';
 import { seedEvents } from './db/seed-events.js';
 import { createMailer } from './modules/survey/mailer.js';
 import { IMPORT_MAP_CSP_HASH, surveyRoutes } from './modules/survey/routes.js';
+import { adminRoutes } from './modules/admin/routes.js';
+import { authRoutes } from './modules/auth/routes.js';
+import { findHouseholdSession } from './modules/auth/service.js';
+import { registrationRoutes } from './modules/registration/routes.js';
 import { messages } from './shared/survey-messages.js';
 
 const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
@@ -25,7 +33,7 @@ const NOT_FOUND_MESSAGE = "Sorry, we couldn't find that page.";
 const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again in a few minutes.';
 const CLIENT_ERROR_MESSAGE = "Sorry, we couldn't process that request.";
 
-export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer, imgDir = `${SRC_DIR}public/img` } = {}) {
+export async function buildApp(config, { database, logStream, logLevel, now, fetchImpl, mailer, imgDir = `${SRC_DIR}public/img`, jwks } = {}) {
   const app = Fastify({
     logger: loggerOptions({ level: logLevel ?? (config.NODE_ENV === 'test' ? 'silent' : 'info'), stream: logStream }),
     genReqId,
@@ -39,13 +47,17 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
-        scriptSrc: ["'self'", 'https://challenges.cloudflare.com', IMPORT_MAP_CSP_HASH],
-        frameSrc: ['https://challenges.cloudflare.com'],
+        scriptSrc: ["'self'", 'https://challenges.cloudflare.com', 'https://accounts.google.com/gsi/client', IMPORT_MAP_CSP_HASH],
+        frameSrc: ['https://challenges.cloudflare.com', 'https://accounts.google.com/gsi/'],
+        connectSrc: ["'self'", 'https://accounts.google.com/gsi/'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com/gsi/style'],
         frameAncestors: ["'none'"],
       },
     },
     frameguard: { action: 'deny' },
     referrerPolicy: { policy: 'no-referrer' },
+    // Google sign-in opens a popup that must post its result back to this page.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   });
   await app.register(formbody);
   await app.register(rateLimit, {
@@ -65,6 +77,31 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
     root: SRC_DIR,
     production: config.NODE_ENV === 'production',
     defaultContext: { site },
+  });
+
+  app.decorateRequest('siteAccount', null);
+  app.addHook('onRequest', async (request) => {
+    const token = cookieValue(request.headers.cookie, 'pongal_session');
+    request.siteAccount = token && database?.db
+      ? await findHouseholdSession(database.db, token, now?.() ?? new Date())
+      : null;
+  });
+  app.addHook('preHandler', async (request, reply) => {
+    const navCsrfToken = request.method === 'GET'
+      ? issueCsrfToken(request, reply, config)
+      : cookieValue(request.headers.cookie, CSRF_COOKIE) ?? '';
+    const householdId = request.siteAccount?.household?.id;
+    const [permission] = householdId && database?.db
+      ? await database.db.select({ id: checkInPermissions.id }).from(checkInPermissions)
+        .where(and(eq(checkInPermissions.householdId, householdId), isNull(checkInPermissions.revokedAt))).limit(1)
+      : [];
+    reply.locals = {
+      adminPath: request.url.startsWith('/admin') ? request.url.split('?')[0].replace(/\/$/, '') || '/admin' : null,
+      canCheckIn: Boolean(permission),
+      ageGroupLabels: AGE_GROUP_LABELS,
+      siteAccount: request.siteAccount?.household ?? null,
+      navCsrfToken,
+    };
   });
 
   app.addHook('onSend', async (request, reply) => {
@@ -87,8 +124,11 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   });
 
   await app.register(healthRoutes, { database });
+  await app.register(adminRoutes, { prefix: '/admin', config, jwks, db: database?.db, now });
   // Survey pages need a real database; tests that only exercise the platform pass a ping-only stub.
   if (database?.db) {
+    await app.register(authRoutes, { db: database.db, config, jwks, mailer, now });
+    await app.register(registrationRoutes, { db: database.db, config, mailer, now });
     await app.register(surveyRoutes, { db: database.db, config, now, fetchImpl, mailer });
   }
   return app;

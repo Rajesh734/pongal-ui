@@ -1,4 +1,4 @@
-import { and, asc, eq, getTableColumns, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, isNull, sql } from 'drizzle-orm';
 import { writeHistory } from '../../db/history.js';
 import { normalizeEmail } from '../../db/repos/households.js';
 import {
@@ -20,7 +20,20 @@ export async function findEventBySlug(db, slug) {
 }
 
 export function listEvents(db) {
-  return db.select().from(events);
+  return db.select().from(events).orderBy(desc(events.surveyOpensAt));
+}
+
+/** Active response family and people totals for an event. */
+export async function countActiveResponses(db, eventId) {
+  const [row] = await db
+    .select({
+      families: sql`count(distinct ${surveyResponses.id})`,
+      people: sql`coalesce(sum(${responseHeadcounts.count}), 0)`,
+    })
+    .from(surveyResponses)
+    .leftJoin(responseHeadcounts, eq(responseHeadcounts.responseId, surveyResponses.id))
+    .where(and(eq(surveyResponses.eventId, eventId), isNull(surveyResponses.deletedAt)));
+  return { families: Number(row?.families ?? 0), people: Number(row?.people ?? 0) };
 }
 
 /** Active response with the given token hash for the event, with its household, or null. */
