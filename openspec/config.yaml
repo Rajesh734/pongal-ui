@@ -7,9 +7,9 @@ context: |
   community apps. Data is kept permanently for year-over-year history.
 
   Tech stack:
-  - Node.js 20 LTS, JavaScript ES modules, no front-end build step
+  - Node.js 26 LTS, JavaScript ES modules, no front-end build step
   - Fastify 5 (+ @fastify/view with Eta, static, formbody, helmet, rate-limit)
-  - PostgreSQL 16 in production (independent Docker stack on the NAS, shared by all apps);
+  - PostgreSQL 18 Alpine (postgres:18-alpine) in production (independent Docker stack on the NAS, shared by all apps);
     PGlite (embedded Postgres, in-memory or local folder) for development and tests, selected by DB_DRIVER
   - Drizzle ORM + drizzle-kit SQL migrations (the same migrations run on both drivers)
   - Zod validation: ONE shared schema module used by both the server and the browser
@@ -19,6 +19,9 @@ context: |
 
   Architecture: src/{server.js, config.js, db/, core/, modules/<feature>/{routes,service,repo,schema,messages,views}, shared/, public/}
   config/events/*.yaml defines events (seeded into the DB). Each future app = new modules/<feature>.
+
+  Reference docs: openspec/data-model.md (tables, constraints, ER diagram) and
+  openspec/route-map.md (every route and its capability). Keep both in sync with the code.
 
   Data rules: never hard-delete respondent data (use deleted_at); every create/update/delete writes
   change_history with a JSON snapshot; timestamps are timestamptz stored in UTC and shown in the event

@@ -12,6 +12,7 @@ import {
   registrations,
 } from '../../db/schema/index.js';
 import { ageGroupLabel } from '../../shared/registration-pricing.js';
+import { formatPhone, toCsv } from '../../core/csv.js';
 
 export class CheckInPermissionError extends Error {
   constructor(message) {
@@ -65,39 +66,37 @@ export function volunteerRows(registrationRows, roleLabels, roleFilter = 'all') 
     })));
 }
 
-function csvCell(value) {
-  let text = value == null ? '' : String(value);
-  if (/^[\t\r ]*[=+\-@]/.test(text)) text = `'${text}`;
-  return `"${text.replaceAll('"', '""')}"`;
-}
-
 export function registrationCsv(event, rows) {
   const header = [
     'Event', 'Registration ID', 'Household contact', 'Email', 'Mobile', 'WhatsApp',
     'Attendee', 'Age group', 'Volunteer roles', 'Registration status', 'Payment status',
     'Amount due (USD)', 'Payer name', 'Zelle reference', 'Performance', 'Participants', 'Duration minutes', 'Compere introduction',
   ];
-  const records = rows.flatMap((row) => row.attendees.map((attendee) => [
-    event.slug,
-    row.registration.id,
-    row.registration.contactName,
-    row.registration.contactEmail,
-    row.registration.contactMobileE164,
-    row.registration.contactWhatsappE164,
-    attendee.name,
-    ageGroupLabel(attendee.ageBand),
-    attendee.volunteerRoles.join('; '),
-    row.registration.status,
-    row.payment?.status,
-    (row.registration.totalCents / 100).toFixed(2),
-    row.payment?.payerName,
-    row.payment?.zelleReference,
-    row.performances.map((performance) => performance.title).join('; '),
-    row.performances.map((performance) => performance.participantNames).join('; '),
-    row.performances.map((performance) => performance.durationMinutes).join('; '),
-    row.performances.map((performance) => performance.compereIntroduction).join('; '),
-  ]));
-  return `\uFEFF${[header, ...records].map((record) => record.map(csvCell).join(',')).join('\r\n')}`;
+  // Like the UI, registration-level cells appear on the first attendee row only; later rows leave them blank.
+  const records = rows.flatMap((row) => (row.attendees.length ? row.attendees : [null]).map((attendee, index) => {
+    const first = (value) => (index === 0 ? value : '');
+    return [
+      event.slug,
+      row.registration.id,
+      first(row.registration.contactName),
+      first(row.registration.contactEmail),
+      first(formatPhone(row.registration.contactMobileE164)),
+      first(formatPhone(row.registration.contactWhatsappE164)),
+      attendee?.name ?? '',
+      attendee ? ageGroupLabel(attendee.ageBand) : '',
+      attendee?.volunteerRoles.join('; ') ?? '',
+      first(row.registration.status),
+      first(row.payment?.status),
+      first((row.registration.totalCents / 100).toFixed(2)),
+      first(row.payment?.payerName),
+      first(row.payment?.zelleReference),
+      first(row.performances.map((performance) => performance.title).join('; ')),
+      first(row.performances.map((performance) => performance.participantNames).join('; ')),
+      first(row.performances.map((performance) => performance.durationMinutes).join('; ')),
+      first(row.performances.map((performance) => performance.compereIntroduction).join('; ')),
+    ];
+  }));
+  return toCsv([header, ...records]);
 }
 
 export async function listActiveCheckInPermissions(db, eventId) {

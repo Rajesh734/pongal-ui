@@ -1,10 +1,13 @@
+import { pageTranslator } from '/shared/i18n/browser.js';
+
+const t = await pageTranslator();
 const selectors = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]), select, textarea';
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const e164Pattern = /^\+[1-9][0-9]{10,12}$/;
 const otherCallingCodePattern = /^\+[1-9][0-9]{0,2}$/;
 
 function labelFor(field) {
-  return field.labels?.[0]?.textContent?.trim().replace(/\s+/g, ' ').toLowerCase() || 'this field';
+  return field.labels?.[0]?.textContent?.trim().replace(/\s+/g, ' ').toLowerCase() || t('this field');
 }
 
 function phoneValue(field) {
@@ -18,32 +21,32 @@ function phoneValue(field) {
 
 function messageFor(field) {
   if (field.disabled || field.closest('[hidden]')) return '';
-  if (field.type === 'checkbox') return field.required && !field.checked ? `Confirm ${labelFor(field)}.` : '';
+  if (field.type === 'checkbox') return field.required && !field.checked ? t('Confirm {label}.', { label: labelFor(field) }) : '';
   const value = field.value.trim();
   const label = labelFor(field);
   const performance = field.closest('.performance-row');
   const performanceHasValues = performance && [...performance.querySelectorAll(selectors)].some((input) => input.value.trim() !== '');
 
   if (field.required && !value) {
-    return field.tagName === 'SELECT' ? `Choose ${label}.` : `Enter ${label}.`;
+    return field.tagName === 'SELECT' ? t('Choose {label}.', { label }) : t('Enter {label}.', { label });
   }
   if (!value && !performanceHasValues) return '';
-  if (performanceHasValues && performance?.contains(field) && !value) return `Complete ${label} or remove this performance.`;
-  if (field.type === 'email' && value && !emailPattern.test(value)) return 'Enter a valid email address, such as name@example.com.';
+  if (performanceHasValues && performance?.contains(field) && !value) return t('Complete {label} or remove this performance.', { label });
+  if (field.type === 'email' && value && !emailPattern.test(value)) return t('Enter a valid email address, such as name@example.com.');
   if (field.name === 'mobileNumber' || field.name === 'whatsappNumber' || field.name.endsWith('E164')) {
     if (value && (field.name.endsWith('E164') ? !e164Pattern.test(phoneValue(field)) : !/^\d{10}$/.test(value))) {
-      return 'Enter exactly 10 digits for the phone number.';
+      return t('Enter exactly 10 digits for the phone number.');
     }
   }
   if (field.name.endsWith('OtherCountryCode') && value && !otherCallingCodePattern.test(value)) {
-    return 'Enter a country calling code, such as +34.';
+    return t('Enter a country calling code, such as +34.');
   }
-  if (field.minLength > 0 && value.length < field.minLength) return `Enter at least ${field.minLength} characters for ${label}.`;
-  if (field.maxLength > 0 && value.length > field.maxLength) return `Use no more than ${field.maxLength} characters for ${label}.`;
-  if (field.validity.rangeUnderflow) return `Enter a value of at least ${field.min}.`;
-  if (field.validity.rangeOverflow) return `Enter a value no greater than ${field.max}.`;
-  if (field.validity.stepMismatch || field.validity.badInput) return `Enter a valid number for ${label}.`;
-  if (field.validity.typeMismatch || field.validity.patternMismatch) return `Enter a valid ${label}.`;
+  if (field.minLength > 0 && value.length < field.minLength) return t('Enter at least {n} characters for {label}.', { n: field.minLength, label });
+  if (field.maxLength > 0 && value.length > field.maxLength) return t('Use no more than {n} characters for {label}.', { n: field.maxLength, label });
+  if (field.validity.rangeUnderflow) return t('Enter a value of at least {n}.', { n: field.min });
+  if (field.validity.rangeOverflow) return t('Enter a value no greater than {n}.', { n: field.max });
+  if (field.validity.stepMismatch || field.validity.badInput) return t('Enter a valid number for {label}.', { label });
+  if (field.validity.typeMismatch || field.validity.patternMismatch) return t('Enter a valid {label}.', { label });
   return '';
 }
 
@@ -97,7 +100,7 @@ function validateConditionalGroups(form, { submitting = false } = {}) {
       error.textContent = '';
       delete error.dataset.shown;
     } else if (submitting || error.dataset.shown) {
-      error.textContent = 'Choose at least one volunteer role or clear willing to volunteer.';
+      error.textContent = t('Choose at least one volunteer role or clear willing to volunteer.');
       error.hidden = false;
       error.dataset.shown = 'true';
     }
@@ -115,7 +118,7 @@ function validateConditionalGroups(form, { submitting = false } = {}) {
       consent.setAttribute('aria-invalid', 'false');
     }
     if ((whatsappSame?.checked || (!whatsapp?.disabled && whatsapp?.value.trim())) && !consent.checked) {
-      error.textContent = 'Agree before organizers contact you on WhatsApp.';
+      error.textContent = t('Agree before organizers contact you on WhatsApp.');
       error.hidden = false;
       error.dataset.groupValidation = 'whatsapp';
       consent.setAttribute('aria-invalid', 'true');

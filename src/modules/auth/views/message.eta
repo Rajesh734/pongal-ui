@@ -2,5 +2,5 @@
     <section class="card message-card">
       <h1><%= it.title %></h1>
       <p class="notice" role="status"><%= it.message %></p>
-      <p><a class="button" href="/">Home</a> <a href="/login">Log in</a></p>
+      <p><a class="button" href="/"><%= it.t('Home') %></a> <a href="/login"><%= it.t('Log in') %></a></p>
     </section>

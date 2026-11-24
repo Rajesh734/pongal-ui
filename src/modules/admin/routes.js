@@ -1,6 +1,8 @@
 import { ADMIN_ACCESS_DENIED, ADMIN_ACCESS_UNAVAILABLE, ADMIN_DEV_WARNING, ADMIN_DISABLED_WARNING, AdminAccessError, createAdminVerifier } from './auth.js';
 import { surveyState } from '../../core/survey-state.js';
-import { countActiveResponses, listEvents } from '../survey/repo.js';
+import { countActiveResponses, findEventBySlug, listEvents } from '../survey/repo.js';
+import { listSurveyExportRows, surveyCsv } from '../survey/export.js';
+import { timestampInZone } from '../../core/time.js';
 import { hasValidCsrfToken, isSameOrigin, issueCsrfToken } from '../../core/csrf.js';
 import {
   CheckInPermissionError,
@@ -80,8 +82,24 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const filename = `${event.slug}-registrations.csv`;
     return reply
       .header('content-type', 'text/csv; charset=utf-8')
+      .header('cache-control', 'no-store')
       .header('content-disposition', `attachment; filename="${filename}"`)
       .send(registrationCsv(event, rows));
+  });
+
+  app.get('/events/:event/responses.csv', async (request, reply) => {
+    if (!db) return reply.code(404).send();
+    const event = await findEventBySlug(db, request.params.event);
+    if (!event?.configSnapshot?.survey) {
+      return reply.code(404).view('core/views/error.eta', { title: 'Page not found', message: "Sorry, we couldn't find that page.", requestId: request.id });
+    }
+    const rows = await listSurveyExportRows(db, event.id);
+    const stamp = timestampInZone(now(), event.timezone).replace(' ', '-').replace(':', '');
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('cache-control', 'no-store')
+      .header('content-disposition', `attachment; filename="${event.slug}-responses-${stamp}.csv"`)
+      .send(surveyCsv(event, event.days, rows));
   });
 
   app.get('/payments', async (request, reply) => {
@@ -115,25 +133,34 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
         const rows = await listPortalRegistrations(db, { eventId: event.id, status: 'payment_pending' });
         return reply.code(409).view('modules/admin/views/payments.eta', {
           title: 'Payments', adminEmail: request.adminEmail, events, event, rows,
-          message: error.message, csrfToken: issueCsrfToken(request, reply, config),
+          message: error.message, messageIsError: true, csrfToken: issueCsrfToken(request, reply, config),
         });
       }
       throw error;
     }
   });
 
-  app.get('/volunteers', async (request, reply) => {
+  async function volunteersPage(request, reply, { eventSlug, role }, message = null, statusCode = 200) {
     if (!db) return reply.code(404).send();
     const events = registrationEvents(await listEvents(db));
-    const event = selectEvent(events, request.query.event);
+    const event = selectEvent(events, eventSlug);
     const roleOptions = event?.configSnapshot.registration.volunteer_roles ?? [];
-    const roleFilter = roleOptions.some((role) => role.code === request.query.role) ? request.query.role : 'all';
+    const roleFilter = roleOptions.some((option) => option.code === role) ? role : 'all';
     const registrations = event ? await listPortalRegistrations(db, { eventId: event.id, status: 'all' }) : [];
-    const roleLabels = Object.fromEntries(roleOptions.map((role) => [role.code, role.label]));
-    return reply.view('modules/admin/views/volunteers.eta', {
+    const granted = event ? await listActiveCheckInPermissions(db, event.id) : [];
+    const roleLabels = Object.fromEntries(roleOptions.map((option) => [option.code, option.label]));
+    return reply.code(statusCode).view('modules/admin/views/volunteers.eta', {
       title: 'Volunteers', adminEmail: request.adminEmail, events, event, roleOptions, roleFilter,
       rows: volunteerRows(registrations, roleLabels, roleFilter),
+      grantedEmails: new Set(granted.map((row) => row.household.email)),
+      message, messageIsError: statusCode >= 400,
+      csrfToken: issueCsrfToken(request, reply, config),
     });
+  }
+
+  app.get('/volunteers', async (request, reply) => {
+    const message = request.query.granted === '1' ? 'Check-in access granted.' : null;
+    return volunteersPage(request, reply, { eventSlug: request.query.event, role: request.query.role }, message);
   });
 
   async function checkInAccessPage(request, reply, eventSlug, message = null, statusCode = 200) {
@@ -143,6 +170,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const rows = event ? await listActiveCheckInPermissions(db, event.id) : [];
     return reply.code(statusCode).view('modules/admin/views/check-in-access.eta', {
       title: 'Check-in Access', adminEmail: request.adminEmail, events, event, rows, message,
+      messageIsError: statusCode >= 400,
       csrfToken: issueCsrfToken(request, reply, config),
     });
   }
@@ -160,11 +188,21 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const events = registrationEvents(await listEvents(db));
     const event = selectEvent(events, request.query.event);
     if (!event) return reply.code(404).send();
+    const fromVolunteers = request.query.from === 'volunteers';
+    const volunteerTarget = { eventSlug: event.slug, role: request.query.role };
     try {
       await grantCheckInPermission(db, { eventId: event.id, email: request.body?.email, adminEmail: request.adminEmail, now: now() });
+      if (fromVolunteers) {
+        const role = request.query.role && request.query.role !== 'all' ? `&role=${encodeURIComponent(request.query.role)}` : '';
+        return reply.redirect(`/admin/volunteers?event=${encodeURIComponent(event.slug)}${role}&granted=1`, 303);
+      }
       return reply.redirect(`/admin/check-in-access?event=${encodeURIComponent(event.slug)}&granted=1`, 303);
     } catch (error) {
-      if (error instanceof CheckInPermissionError) return checkInAccessPage(request, reply, event.slug, error.message, 400);
+      if (error instanceof CheckInPermissionError) {
+        return fromVolunteers
+          ? volunteersPage(request, reply, volunteerTarget, error.message, 400)
+          : checkInAccessPage(request, reply, event.slug, error.message, 400);
+      }
       throw error;
     }
   });

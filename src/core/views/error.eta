@@ -1,17 +1,18 @@
+<% const t = it.t ?? ((key) => key); %>
 <!doctype html>
-<html lang="en">
+<html lang="<%= it.locale ?? 'en' %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= it.title %></title>
+  <title><%= t(it.title) %></title>
   <link rel="stylesheet" href="/public/css/site.css">
 </head>
 <body>
   <main class="page">
-    <h1><%= it.title %></h1>
-    <p><%= it.message %></p>
+    <h1><%= t(it.title) %></h1>
+    <p><%= t(it.message) %></p>
 <% if (it.requestId) { %>
-    <p class="muted">Reference: <code><%= it.requestId %></code></p>
+    <p class="muted"><%= t('Reference') %>: <code><%= it.requestId %></code></p>
 <% } %>
   </main>
 </body>

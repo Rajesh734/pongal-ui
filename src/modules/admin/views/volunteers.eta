@@ -2,6 +2,9 @@
     <section class="card admin-home">
       <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
       <h1>Volunteers</h1>
+<% if (it.message) { %>
+      <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
+<% } %>
       <form method="get" action="/admin/volunteers" class="admin-filters">
         <label for="event">Event</label>
         <select id="event" name="event">
@@ -24,7 +27,7 @@
       <p class="table-scroll-hint muted" aria-hidden="true">Scroll sideways to see all columns &rarr;</p>
       <div class="table-scroll table-scroll--wide" tabindex="0" role="region" aria-label="Volunteers table">
         <table>
-          <thead><tr><th>Household</th><th>Attendee</th><th>Age group</th><th>Roles</th></tr></thead>
+          <thead><tr><th>Household</th><th>Attendee</th><th>Age group</th><th>Roles</th><th>Check-in access</th></tr></thead>
 <%
   const groups = [];
   it.rows.forEach((row) => {
@@ -46,6 +49,17 @@
               <td><%= row.attendeeName %></td>
               <td><%= row.ageGroup %></td>
               <td><%= row.roles.join(', ') %></td>
+              <td>
+<% if (it.grantedEmails.has(row.householdEmail)) { %>
+                <span class="muted">Access granted</span>
+<% } else { %>
+                <form method="post" action="/admin/check-in-access/grant?event=<%= it.event.slug %>&from=volunteers&role=<%= it.roleFilter %>">
+                  <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+                  <input type="hidden" name="email" value="<%= row.householdEmail %>">
+                  <button class="button" type="submit" aria-label="Grant check-in access to <%= row.attendeeName %>">Grant check-in</button>
+                </form>
+<% } %>
+              </td>
             </tr>
 <% }) %>
           </tbody>

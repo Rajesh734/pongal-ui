@@ -26,6 +26,10 @@ import { authRoutes } from './modules/auth/routes.js';
 import { findHouseholdSession } from './modules/auth/service.js';
 import { registrationRoutes } from './modules/registration/routes.js';
 import { messages } from './shared/survey-messages.js';
+import { resolveLocale, LANGUAGE_UNAVAILABLE } from './core/locale.js';
+import { LOCALES, translatorFor } from './shared/i18n/index.js';
+
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 
 const SRC_DIR = fileURLToPath(new URL('.', import.meta.url));
 const ERROR_VIEW = 'core/views/error.eta';
@@ -80,6 +84,24 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   });
 
   app.decorateRequest('siteAccount', null);
+  app.decorateRequest('locale', 'en');
+  app.decorateRequest('t', function t(key, vars) {
+    return translatorFor(this.locale)(key, vars);
+  });
+  app.decorateRequest('languageUnavailable', false);
+  app.addHook('onRequest', async (request, reply) => {
+    // Organizer pages stay in English.
+    const resolved = request.url.startsWith('/admin') ? { locale: 'en', unavailable: false } : resolveLocale(request, reply, config);
+    request.locale = resolved.locale;
+    request.languageUnavailable = resolved.unavailable;
+    reply.locals = {
+      locale: request.locale,
+      locales: LOCALES,
+      t: (key, vars) => request.t(key, vars),
+      esc: escapeHtml,
+      languageNotice: request.languageUnavailable ? LANGUAGE_UNAVAILABLE : null,
+    };
+  });
   app.addHook('onRequest', async (request) => {
     const token = cookieValue(request.headers.cookie, 'pongal_session');
     request.siteAccount = token && database?.db
@@ -96,6 +118,7 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
         .where(and(eq(checkInPermissions.householdId, householdId), isNull(checkInPermissions.revokedAt))).limit(1)
       : [];
     reply.locals = {
+      ...reply.locals,
       adminPath: request.url.startsWith('/admin') ? request.url.split('?')[0].replace(/\/$/, '') || '/admin' : null,
       canCheckIn: Boolean(permission),
       ageGroupLabels: AGE_GROUP_LABELS,
@@ -110,17 +133,17 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   registerRequestLogging(app);
 
   app.setNotFoundHandler((request, reply) =>
-    reply.code(404).view(ERROR_VIEW, { title: 'Page not found', message: NOT_FOUND_MESSAGE, requestId: request.id }),
+    reply.code(404).view(ERROR_VIEW, { title: request.t('Page not found'), message: request.t(NOT_FOUND_MESSAGE), requestId: request.id }),
   );
 
   app.setErrorHandler((err, request, reply) => {
     const status = err.statusCode >= 400 && err.statusCode < 500 ? err.statusCode : 500;
     if (status === 500) request.log.error({ err }, 'Unhandled error');
-    let message = CLIENT_ERROR_MESSAGE;
-    if (status === 500) message = SERVER_ERROR_MESSAGE;
+    let message = request.t(CLIENT_ERROR_MESSAGE);
+    if (status === 500) message = request.t(SERVER_ERROR_MESSAGE);
     else if (status === 413) message = messages.tooLarge;
-    else if (status === 429) message = err.message; // set by our rate-limit errorResponseBuilder
-    return reply.code(status).view(ERROR_VIEW, { title: 'Sorry', message, requestId: request.id });
+    else if (status === 429) message = request.t(err.message); // set by our rate-limit errorResponseBuilder
+    return reply.code(status).view(ERROR_VIEW, { title: request.t('Sorry'), message, requestId: request.id });
   });
 
   await app.register(healthRoutes, { database });

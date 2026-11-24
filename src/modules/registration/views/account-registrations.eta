@@ -1,28 +1,28 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card">
-      <h1>My Registrations</h1>
+      <h1><%= it.title %></h1>
 <% if (!it.rows.length) { %>
-      <p class="muted">You do not have any registrations yet.</p>
-      <p><a class="button primary" href="/register">Register for Pongal</a></p>
+      <p class="muted"><%= it.t('You do not have any registrations yet.') %></p>
+      <p><a class="button primary" href="/register"><%= it.t('Register for Pongal') %></a></p>
 <% } else { %>
 <% it.rows.forEach((row) => { %>
       <article class="registration-history">
         <h2><%= row.event.name %></h2>
-        <p>Status: <%= row.registration.status === 'confirmed' ? 'Confirmed' : 'Payment pending' %></p>
-        <p>Payment: <%= row.payment.status === 'confirmed' ? 'Confirmed' : 'Pending' %></p>
-        <p>Total: $<%= (row.registration.totalCents / 100).toFixed(2) %></p>
+        <p><%= it.t('Status: {status}', { status: row.registration.status === 'confirmed' ? it.t('Confirmed') : it.t('Payment pending') }) %></p>
+        <p><%= it.t('Payment: {status}', { status: row.payment.status === 'confirmed' ? it.t('Confirmed') : it.t('Pending') }) %></p>
+        <p><%= it.t('Total: {amount}', { amount: '$' + (row.registration.totalCents / 100).toFixed(2) }) %></p>
         <ul>
 <% row.attendees.forEach((attendee) => { %>
-          <li><%= attendee.name %> - <%= attendee.ageBand === '11_plus' ? 'Age 11+' : attendee.ageBand === '5_to_10' ? 'Age 5-10' : 'Under 5' %></li>
+          <li><%= attendee.name %> - <%= attendee.ageBand === '11_plus' ? it.t('Age 11+') : attendee.ageBand === '5_to_10' ? it.t('Age 5-10') : it.t('Under 5') %></li>
 <% }) %>
         </ul>
 <% if (row.qrCodeDataUrl) { %>
         <figure class="entry-pass">
-          <img src="<%= row.qrCodeDataUrl %>" alt="QR entry pass for <%= row.event.name %>" width="240" height="240">
-          <figcaption>Show this pass at event check-in.</figcaption>
+          <img src="<%= row.qrCodeDataUrl %>" alt="<%= it.t('QR entry pass for {name}', { name: row.event.name }) %>" width="240" height="240">
+          <figcaption><%= it.t('Show this pass at event check-in.') %></figcaption>
         </figure>
 <% } else { %>
-        <p>Your entry pass will be available after payment is confirmed.</p>
+        <p><%= it.t('Your entry pass will be available after payment is confirmed.') %></p>
 <% } %>
       </article>
 <% }) %>

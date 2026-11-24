@@ -78,6 +78,10 @@ h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; color: var(--maroon); }
 .site-nav a:hover { background: rgba(255, 255, 255, 0.14); }
 .site-nav a:focus-visible { outline: 2px solid var(--turmeric-soft); outline-offset: 1px; }
 .mobile-menu, .account-menu { position: relative; justify-self: start; }
+.lang-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0 0.25rem; max-width: 60rem; margin: 0 auto; padding: 0.25rem 1rem 0; font-size: 0.875rem; }
+.lang-bar a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 0.5rem; color: var(--maroon); }
+.lang-bar a[aria-current="true"] { font-weight: 700; text-decoration: none; }
+.lang-bar .notice { flex-basis: 100%; margin: 0; }
 .mobile-menu { grid-column: 1; }
 .account-menu { grid-column: 3; justify-self: end; }
 .mobile-menu summary, .account-menu summary { display: grid; place-items: center; width: 44px; height: 44px; list-style: none; cursor: pointer; border-radius: 0.25rem; }

@@ -184,7 +184,6 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 - `build` job (needs `test`, `packages: write`): checks `compose.yaml` with `docker compose config` and that every published port is bound to `127.0.0.1`, then Buildx for `linux/amd64`, tags `sha-<short>`, branch name and `latest` on `main` (from `docker/metadata-action`), GHA layer cache. The built image is loaded locally and must print `1000` for `id -u` before anything is pushed; it is pushed only when the event is not a pull request.
 - *Copy the sample's Postgres service, `npm run lint || true` and Codecov* - rejected: no Postgres in tests, a lint step that cannot fail adds nothing, and coverage upload is not needed yet.
 - *Sample `verify` job pulling `latest`* - rejected: `latest` may be a different build; verify the exact `sha-` tag.
-- *`lmigtech/internal-actions` setup-node* - rejected: not reachable from a personal repository.
 
 ### D12. Deploy workflow over Tailscale + SSH
 `.github/workflows/deploy.yml`:

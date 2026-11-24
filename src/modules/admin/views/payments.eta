@@ -4,7 +4,7 @@
       <h1>Payments</h1>
       <p class="muted">Payments awaiting organizer verification</p>
     <% if (it.message) { %>
-      <p class="notice" role="status"><%= it.message %></p>
+      <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
       <form method="get" action="/admin/payments" class="admin-filters">
         <label for="event">Event</label>

@@ -4,7 +4,7 @@
       <h1>Check-in Access</h1>
       <p>Approved volunteers sign in with their household account and open <a href="/check-in">Scan Passes</a> from the account menu to scan entry pass QR codes. To scan passes yourself, grant access to your own household email.</p>
     <% if (it.message) { %>
-      <p class="notice" role="status"><%= it.message %></p>
+      <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
       <form method="get" action="/admin/check-in-access" class="admin-filters">
         <label for="event">Event</label>
