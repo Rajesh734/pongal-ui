@@ -1,5 +1,11 @@
 const PRICE_KEYS = { '11_plus': 'age_11_plus', '5_to_10': 'age_5_to_10', under_5: 'under_5' };
 
+export const AGE_GROUP_LABELS = { '11_plus': '11+', '5_to_10': '5-10', under_5: '0-4' };
+
+export function ageGroupLabel(ageBand) {
+  return AGE_GROUP_LABELS[ageBand] ?? ageBand;
+}
+
 export function feeForAgeBand(ageBand, prices) {
   return prices[PRICE_KEYS[ageBand]];
 }

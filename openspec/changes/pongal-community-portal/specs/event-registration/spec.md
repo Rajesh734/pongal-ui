@@ -7,7 +7,7 @@ Lets a household register its family for a Pongal event, submit cultural and vol
 ## ADDED Requirements
 
 ### Requirement: Guest and household registration
-The system SHALL allow a household to submit a registration as a guest or while signed in. A guest MUST receive a secure link to retrieve the registration and payment status.
+The system SHALL allow a household to submit a registration as a guest or while signed in. Every new registration MUST send a secure link to retrieve the registration and payment status to the registration email when email delivery is configured.
 
 #### Scenario: Guest registration is saved
 - **WHEN** a guest submits a valid household registration
@@ -15,7 +15,7 @@ The system SHALL allow a household to submit a registration as a guest or while 
 
 #### Scenario: Signed-in household registers
 - **WHEN** a signed-in household submits a valid registration
-- **THEN** the registration is linked to that household and appears in My Registrations
+- **THEN** the registration is linked to that household, appears in My Registrations, and the secure access link is emailed to the household email
 
 #### Scenario: Guest access link is invalid
 - **WHEN** a guest opens an expired or invalid registration link
@@ -66,6 +66,10 @@ Each registration MUST include one primary contact name, email, and mobile numbe
 - **WHEN** the primary contact selects India +91 for a WhatsApp number different from the mobile number and gives consent
 - **THEN** the registration stores the two normalized numbers separately
 
+#### Scenario: WhatsApp number is the same as the mobile number
+- **WHEN** the contact ticks "My WhatsApp number is the same as my mobile number" and gives consent
+- **THEN** the separate WhatsApp fields are hidden, the mobile number is stored as the WhatsApp number, and an invalid mobile number is reported only once under the mobile number
+
 #### Scenario: WhatsApp number has no consent
 - **WHEN** a contact enters a WhatsApp number without agreeing to event-related WhatsApp contact
 - **THEN** the system does not save the number and displays "Please agree before we contact you on WhatsApp."
@@ -80,6 +84,14 @@ A household MAY submit up to two performances. Each entry MUST include a perform
 #### Scenario: Performance details are submitted
 - **WHEN** a household submits one performance with a title, named participants, duration, and introduction
 - **THEN** those details appear in the household registration and organizer report
+
+#### Scenario: Household adds a performance
+- **WHEN** a household opens the form, no empty performance entry is shown until it selects "Add performance"
+- **THEN** each added performance appears in its own card with example placeholders, compact "Performers" and "Minutes" boxes side by side, a live "Up to N minutes for ..." hint based on the performer count, and a Remove link, and the add action disappears once the maximum is reached
+
+#### Scenario: Contact enters a phone number on a phone
+- **WHEN** a contact views the mobile or WhatsApp number on a narrow screen
+- **THEN** a compact country-code selector showing only the calling code (for example "+1") sits beside the number field, and opening it lists full country names
 
 #### Scenario: More than two performances are requested
 - **WHEN** a household tries to add a third performance
@@ -103,6 +115,10 @@ The system SHALL let the household mark each named attendee as willing to volunt
 #### Scenario: Attendee selects volunteer roles
 - **WHEN** Priya is marked willing to volunteer and selects "Registration desk" and "Photography"
 - **THEN** the organizer report associates Priya with both selected roles
+
+#### Scenario: Volunteer roles appear only after opting in
+- **WHEN** an attendee is not marked willing to volunteer
+- **THEN** the role checkboxes are hidden; ticking "Willing to volunteer" reveals them in a compact grid, clearing it unticks any roles, and the "Choose at least one volunteer role" message appears under the roles only on submit or after the last role is unticked
 
 #### Scenario: Volunteer roles are selected without opting in
 - **WHEN** no attendee is marked willing to volunteer

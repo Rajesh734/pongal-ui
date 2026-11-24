@@ -46,7 +46,7 @@ function registrationPayload(overrides = {}) {
     contactName: 'Priya',
     contactEmail: 'Priya@Example.com',
     mobileCountryCode: '+1',
-    mobileNumber: '6039700000',
+    mobileNumber: '6031234567',
     whatsappCountryCode: '+91',
     whatsappNumber: '9876543210',
     whatsappConsent: true,
@@ -76,10 +76,12 @@ describe('registration routes', () => {
     const form = await app.inject('/register');
     expect(form.statusCode).toBe(200);
     expect(form.body).toContain('Register for Pongal 2027');
-    expect(form.body).toContain('Adult primary contact (age 11+) - $35');
+    expect(form.body).toContain('11+ (adult primary contact) - $35');
     expect(form.body).toContain('<input type="hidden" name="attendeeAgeBand" value="11_plus">');
-    expect(form.body).toContain('Age 5-10 - $25');
-    expect(form.body).toContain('Under 5 - Free');
+    expect(form.body).toContain('5-10 - $25');
+    expect(form.body).toContain('0-4 - Free');
+    expect(form.body).toContain('name="whatsappSameAsMobile"');
+    expect(form.body).not.toContain('id="performanceTitle0"');
     expect(form.body).toContain('United States (+1)');
     expect(form.body).toContain('India (+91)');
     expect(form.body).toContain('Other country code');
@@ -192,7 +194,9 @@ describe('registration routes', () => {
     });
     expect(response.statusCode).toBe(303);
     expect(await database.db.select().from(households)).toHaveLength(1);
-    expect(emails).toHaveLength(0);
+    expect(emails).toHaveLength(1);
+    expect(emails[0].to).toBe('priya@example.com');
+    expect(emails[0].link).toContain(response.headers.location);
   });
 
   it('My Registrations is private and shows a QR only for confirmed registrations', async () => {
@@ -300,6 +304,8 @@ describe('registration routes', () => {
     });
     expect(preview.statusCode).toBe(200);
     expect(preview.body).toContain('Priya');
+    expect(preview.body).toContain('check-in-result--ready');
+    expect(preview.body).toContain('<li>Priya (11+)</li>');
     expect(preview.body).toContain('Check in household');
 
     const checkedIn = await app.inject({
@@ -309,6 +315,7 @@ describe('registration routes', () => {
     });
     expect(checkedIn.statusCode).toBe(200);
     expect(checkedIn.body).toContain('Household checked in. Welcome!');
+    expect(checkedIn.body).toContain('check-in-result--success');
     const repeated = await app.inject({
       method: 'POST',
       url: '/check-in/preview',
@@ -316,6 +323,15 @@ describe('registration routes', () => {
     });
 
     expect(repeated.body).toContain('This household was already checked in.');
+    expect(repeated.body).toContain('check-in-result--warning');
+
+    const invalid = await app.inject({
+      method: 'POST',
+      url: '/check-in/preview',
+      ...csrfForm(scannerPage, { token: 'not-a-pass' }, `pongal_session=${sessionToken}`),
+    });
+    expect(invalid.body).toContain('Pass not recognized.');
+    expect(invalid.body).toContain('check-in-result--error');
 
     const [permission] = await database.db.select().from(checkInPermissions).where(eq(checkInPermissions.householdId, scanner.id));
     await database.db.update(checkInPermissions)

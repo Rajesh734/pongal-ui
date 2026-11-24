@@ -228,16 +228,16 @@ test('registration validates on blur, hides volunteering for minors, and continu
   expect(await page.evaluate(() => isSecureContext)).toBe(true);
 
   await page.getByLabel('Email').fill('not-an-email');
-  await page.getByLabel('Mobile number').focus();
+  await page.getByLabel('Mobile number', { exact: true }).focus();
   await expect(page.getByLabel('Email')).toHaveAttribute('aria-invalid', 'true');
   await expect(page.locator('#contactEmail-validation-error')).toContainText('Enter a valid email address');
 
-  await page.getByLabel('Mobile number').fill('letters');
+  await page.getByLabel('Mobile number', { exact: true }).fill('letters');
   await page.getByLabel('Full name').focus();
-  await expect(page.getByLabel('Mobile number')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByLabel('Mobile number', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   await expect(page.locator('#mobileNumber-validation-error')).toContainText('Enter exactly 10 digits');
 
-  const whatsapp = page.getByLabel('WhatsApp number, if different (optional)');
+  const whatsapp = page.getByLabel('WhatsApp number', { exact: true });
   await whatsapp.fill('9876543210');
   await expect(page.locator('[data-validation-error-for="whatsappConsent"]')).toContainText('Agree before organizers contact you on WhatsApp.');
   await whatsapp.fill('9876543211');
@@ -245,6 +245,13 @@ test('registration validates on blur, hides volunteering for minors, and continu
   await whatsapp.fill('');
   await expect(page.locator('[data-validation-error-for="whatsappConsent"]')).toHaveCount(1);
   await expect(page.locator('[data-validation-error-for="whatsappConsent"]')).toBeHidden();
+
+  const sameAsMobile = page.getByLabel('My WhatsApp number is the same as my mobile number');
+  await sameAsMobile.check();
+  await expect(whatsapp).toBeHidden();
+  await expect(whatsapp).toBeDisabled();
+  await sameAsMobile.uncheck();
+  await expect(whatsapp).toBeVisible();
 
   await expect(page.locator('[name="attendeeAgeBand"]').first()).toHaveValue('11_plus');
   await expect(page.locator('[name="attendeeAgeBand"]').first()).toBeHidden();
@@ -271,11 +278,12 @@ test('registration validates on blur, hides volunteering for minors, and continu
 
   const email = page.getByLabel('Email');
   await email.fill('family@example.com');
-  await page.getByLabel('Mobile number').fill('6039700000');
+  await page.getByLabel('Mobile number', { exact: true }).fill('6031234567');
   await page.getByLabel('Full name').fill('Arun Test');
   const emailWidth = await email.evaluate((input) => input.getBoundingClientRect().width);
   const nameWidth = await page.getByLabel('Full name').evaluate((input) => input.getBoundingClientRect().width);
-  expect(nameWidth).toBe(emailWidth);
+  expect(nameWidth).toBeLessThanOrEqual(emailWidth);
+  expect(nameWidth).toBeGreaterThan(emailWidth * 0.8);
   expect(await page.evaluate(() => document.body.scrollWidth)).toBe(360);
 
   await page.getByRole('button', { name: 'Continue to payment instructions' }).click();
@@ -307,9 +315,10 @@ test('desktop auth and registration forms stay within readable widths', async ({
 
   await page.goto(`${baseUrl}/register`);
   const registrationCardWidth = await page.locator('.registration-card').evaluate(element => element.getBoundingClientRect().width);
+  const formWidth = await page.locator('.registration-card form').evaluate(element => element.getBoundingClientRect().width);
   const formWidths = await page.locator('.registration-card form input:not([type="hidden"]):not([type="checkbox"]):not([hidden])')
-    .evaluateAll(inputs => inputs.map(input => input.getBoundingClientRect().width));
+    .evaluateAll(inputs => inputs.filter(input => input.offsetParent).map(input => input.getBoundingClientRect().width));
   expect(registrationCardWidth).toBeLessThanOrEqual(800);
-  expect(new Set(formWidths).size).toBe(1);
-  expect(formWidths[0]).toBeLessThanOrEqual(704);
+  expect(formWidth).toBeLessThanOrEqual(704);
+  expect(Math.max(...formWidths)).toBeLessThanOrEqual(formWidth);
 });

@@ -1,4 +1,4 @@
-import { ADMIN_ACCESS_DENIED, ADMIN_ACCESS_UNAVAILABLE, ADMIN_DISABLED_WARNING, AdminAccessError, createAdminVerifier } from './auth.js';
+import { ADMIN_ACCESS_DENIED, ADMIN_ACCESS_UNAVAILABLE, ADMIN_DEV_WARNING, ADMIN_DISABLED_WARNING, AdminAccessError, createAdminVerifier } from './auth.js';
 import { surveyState } from '../../core/survey-state.js';
 import { countActiveResponses, listEvents } from '../survey/repo.js';
 import { hasValidCsrfToken, isSameOrigin, issueCsrfToken } from '../../core/csrf.js';
@@ -28,6 +28,7 @@ function selectStatus(value) {
 export async function adminRoutes(app, { config, db, jwks, now = () => new Date() } = {}) {
   const verifyAdmin = createAdminVerifier(config, { jwks });
   if (!verifyAdmin) app.log.warn(ADMIN_DISABLED_WARNING);
+  else if (config.ADMIN_DEV_EMAIL && !(config.CF_ACCESS_TEAM_DOMAIN && config.CF_ACCESS_AUD)) app.log.warn(ADMIN_DEV_WARNING);
 
   app.addHook('onRequest', async (request, reply) => {
     try {

@@ -37,7 +37,7 @@ function validForm(overrides = {}) {
     contactName: 'Priya',
     contactEmail: 'Priya@Example.com',
     mobileCountryCode: '+1',
-    mobileNumber: '6039700000',
+    mobileNumber: '6031234567',
     attendees: [
       { name: 'Priya', ageBand: '11_plus', willingToVolunteer: true, volunteerRoles: ['registration_desk'] },
       { name: 'Arun', ageBand: '5_to_10', willingToVolunteer: false, volunteerRoles: [] },

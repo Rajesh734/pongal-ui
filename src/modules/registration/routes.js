@@ -81,6 +81,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         whatsappCountryCode: whatsapp.countryCode,
         whatsappNumber: whatsapp.number,
         whatsappOtherCountryCode: whatsapp.otherCountryCode,
+        whatsappSameAsMobile: Boolean(household?.whatsappE164) && household.whatsappE164 === household.mobileE164,
         whatsappConsent: Boolean(household?.whatsappConsentAt),
         attendees: [{ name: household?.name ?? '', ageBand: '11_plus', willingToVolunteer: false, volunteerRoles: [] }],
         performances: [],
@@ -128,7 +129,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         householdId: request.registrationAccount?.household.id ?? null,
         now: now(),
       });
-      if (!request.registrationAccount && mailer?.sendRegistrationAccessEmail && config.APP_BASE_URL) {
+      if (mailer?.sendRegistrationAccessEmail && config.APP_BASE_URL) {
         const link = new URL(`/register/access/${created.accessToken}`, config.APP_BASE_URL).toString();
         await mailer.sendRegistrationAccessEmail({ to: created.household.email, eventName: event.name, link });
       }
@@ -229,6 +230,8 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         whatsappCountryCode: whatsapp.countryCode,
         whatsappNumber: whatsapp.number,
         whatsappOtherCountryCode: whatsapp.otherCountryCode,
+        whatsappSameAsMobile: Boolean(result.registration.contactWhatsappE164)
+          && result.registration.contactWhatsappE164 === result.registration.contactMobileE164,
         whatsappConsent: Boolean(result.registration.whatsappConsentAt),
         attendees: result.attendees.map(({ name, ageBand, willingToVolunteer, volunteerRoles }) => ({ name, ageBand, willingToVolunteer, volunteerRoles })),
         performances: result.performances,

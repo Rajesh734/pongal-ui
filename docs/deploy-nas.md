@@ -120,7 +120,7 @@ Set `GOOGLE_CLIENT_ID` in each environment's `.env` to that web client ID, then 
 
 ### Optional: Gmail for account and registration emails
 
-The site can send household verification and guest registration links through a Gmail account (about 500 recipients a day; at most 3 emails per address per hour).
+The site can send household verification links and registration confirmation links (for guests and signed-in households) through a Gmail account (about 500 recipients a day; at most 3 emails per address per hour).
 
 1. Sign in to the Gmail account that should send the emails. Turn on **2-Step Verification** (Google Account > Security > 2-Step Verification). App passwords need it.
 2. Create an app password: Google Account > Security > **App passwords** (or <https://myaccount.google.com/apppasswords>). Name it `pongal-ui <environment>`. Google shows a 16-character password once.

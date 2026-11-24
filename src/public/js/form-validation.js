@@ -75,28 +75,36 @@ function validate(field) {
   return !message;
 }
 
-function validateConditionalGroups(form) {
+function validateConditionalGroups(form, { submitting = false } = {}) {
   let valid = true;
   for (const row of form.querySelectorAll('.attendee-row')) {
     const willing = row.querySelector('input[name^="attendeeWilling_"]');
     const roles = row.querySelectorAll('input[name^="attendeeRoles_"]:checked');
-    const age = row.querySelector('[name="attendeeAgeBand"]');
-    const ageError = errorElement(age);
-    if (ageError.dataset.groupValidation === 'volunteer') {
-      ageError.textContent = '';
-      ageError.hidden = true;
-      ageError.dataset.groupValidation = '';
-      age.setAttribute('aria-invalid', 'false');
+    const volunteer = row.querySelector('.attendee-volunteer');
+    if (!willing || !volunteer) continue;
+    let error = volunteer.querySelector('[data-volunteer-error]');
+    if (!error) {
+      error = document.createElement('p');
+      error.className = 'field-error';
+      error.dataset.volunteerError = '';
+      error.setAttribute('aria-live', 'polite');
+      error.hidden = true;
+      volunteer.append(error);
     }
-    if (willing?.checked && roles.length === 0) {
-      age.setAttribute('aria-invalid', 'true');
-      ageError.textContent = 'Choose at least one volunteer role or clear willing to volunteer.';
-      ageError.hidden = false;
-      ageError.dataset.groupValidation = 'volunteer';
-      valid = false;
+    const missingRole = willing.checked && roles.length === 0;
+    if (!missingRole) {
+      error.hidden = true;
+      error.textContent = '';
+      delete error.dataset.shown;
+    } else if (submitting || error.dataset.shown) {
+      error.textContent = 'Choose at least one volunteer role or clear willing to volunteer.';
+      error.hidden = false;
+      error.dataset.shown = 'true';
     }
+    if (missingRole) valid = false;
   }
   const whatsapp = form.querySelector('[name="whatsappNumber"]');
+  const whatsappSame = form.querySelector('[name="whatsappSameAsMobile"]');
   const consent = form.querySelector('[name="whatsappConsent"]');
   if (consent) {
     const error = errorElement(consent);
@@ -106,7 +114,7 @@ function validateConditionalGroups(form) {
       error.dataset.groupValidation = '';
       consent.setAttribute('aria-invalid', 'false');
     }
-    if (whatsapp?.value.trim() && !consent.checked) {
+    if ((whatsappSame?.checked || (!whatsapp?.disabled && whatsapp?.value.trim())) && !consent.checked) {
       error.textContent = 'Agree before organizers contact you on WhatsApp.';
       error.hidden = false;
       error.dataset.groupValidation = 'whatsapp';
@@ -129,14 +137,18 @@ document.querySelectorAll('form[data-validate-on-blur]').forEach((form) => {
   });
   form.addEventListener('change', (event) => {
     if (event.target.matches(selectors) && event.target.dataset.validationTouched) validate(event.target);
+    if (event.target.matches('input[name^="attendeeRoles_"]') && !event.target.checked) {
+      const error = event.target.closest('.attendee-volunteer')?.querySelector('[data-volunteer-error]');
+      if (error) error.dataset.shown = 'true';
+    }
     validateConditionalGroups(form);
   });
   form.addEventListener('submit', (event) => {
     const fields = [...form.querySelectorAll(selectors)].filter((field) => !field.disabled && !field.closest('[hidden]'));
     const firstInvalid = fields.find((field) => !validate(field));
-    if (firstInvalid || !validateConditionalGroups(form)) {
+    if (!validateConditionalGroups(form, { submitting: true }) || firstInvalid) {
       event.preventDefault();
-      firstInvalid?.focus();
+      (firstInvalid ?? form.querySelector('[data-volunteer-error]:not([hidden])')?.closest('.attendee-volunteer')?.querySelector('input'))?.focus();
     }
   });
 });

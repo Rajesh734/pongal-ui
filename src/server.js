@@ -17,6 +17,7 @@ import { genReqId, loggerOptions, registerRequestLogging } from './core/logger.j
 import { findLogo, SITE_LOCATION, SITE_NAME } from './core/site.js';
 import { createDatabase } from './db/index.js';
 import { checkInPermissions } from './db/schema/index.js';
+import { AGE_GROUP_LABELS } from './shared/registration-pricing.js';
 import { seedEvents } from './db/seed-events.js';
 import { createMailer } from './modules/survey/mailer.js';
 import { IMPORT_MAP_CSP_HASH, surveyRoutes } from './modules/survey/routes.js';
@@ -97,6 +98,7 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
     reply.locals = {
       adminPath: request.url.startsWith('/admin') ? request.url.split('?')[0].replace(/\/$/, '') || '/admin' : null,
       canCheckIn: Boolean(permission),
+      ageGroupLabels: AGE_GROUP_LABELS,
       siteAccount: request.siteAccount?.household ?? null,
       navCsrfToken,
     };

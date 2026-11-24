@@ -47,6 +47,7 @@
 - [x] 5.4 Enforce the separate check-in permission on every scan; verify approved access, volunteer-without-permission denial, and revocation during an active session.
 - [x] 5.5 Add browser tests for camera permission denied, camera unavailable, and successful scan on HTTPS at mobile viewport sizes.
 - [x] 5.6 Link the scanner from the admin menu and from the account menu for households with check-in permission; add a vendored jsQR fallback for browsers without BarcodeDetector and a Stop camera control; verify with route and browser tests.
+- [x] 5.7 Show scan results in bold, colour-coded panels (green checked in, yellow already checked in, red invalid/unpaid/wrong event); verify the result classes in route tests.
 
 ## 6. Portal pages and navigation
 
@@ -58,6 +59,8 @@
 - [x] 6.6 Add the top-left three-line mobile menu and top-right user-icon account dropdown that close on outside click or Escape; verify signed-in and signed-out menu actions in the browser.
 - [x] 6.7 Match header logo orientation, use a cream-background favicon, and constrain auth/registration form widths; verify desktop widths and equal input sizes.
 - [x] 6.8 Add blur-time inline validation backed by the same server rules; verify one message per field while typing and deleting.
+- [x] 6.9 Show admin table rows as labelled stacked cards on phones and widen admin pages on desktop; rename "Age band" to "Age group" with 11+, 5-10, 0-4 in admin pages and CSV; verify in admin tests.
+- [x] 6.10 Reorganize the registration form into numbered sections with plain checkboxes, filled secondary buttons, attendee and performance cards, a WhatsApp same-as-mobile option, role disclosure, and live performance time hints; verify at 390 px and 1280 px and in schema, route, and browser tests.
 
 ## 7. Localization
 

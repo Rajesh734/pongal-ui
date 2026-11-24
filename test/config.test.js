@@ -120,4 +120,11 @@ describe('config', () => {
     const config = loadConfig({ ...BASE, NODE_ENV: 'production', QR_PASS_ENCRYPTION_KEY: key });
     expect(config.QR_PASS_ENCRYPTION_KEY).toBe(key);
   });
+
+  it('Local admin login is refused outside development', () => {
+    expect(loadConfig({ ...BASE, ADMIN_DEV_EMAIL: 'dev@example.com' }).ADMIN_DEV_EMAIL).toBe('dev@example.com');
+    const key = Buffer.alloc(32, 9).toString('base64');
+    expect(() => loadConfig({ ...BASE, NODE_ENV: 'production', QR_PASS_ENCRYPTION_KEY: key, ADMIN_DEV_EMAIL: 'dev@example.com' }))
+      .toThrow('Invalid setting ADMIN_DEV_EMAIL: only allowed when NODE_ENV=development');
+  });
 });

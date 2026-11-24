@@ -18,18 +18,18 @@
 <% if (!it.rows.length) { %>
       <p class="muted">No payments are waiting for review.</p>
 <% } else { %>
-      <div class="table-scroll">
+      <div class="table-scroll table-stack">
         <table>
           <thead><tr><th>Household</th><th>Amount due</th><th>Payer</th><th>Zelle reference</th><th>Declared</th><th>Action</th></tr></thead>
           <tbody>
 <% it.rows.forEach((row) => { %>
             <tr>
-              <td><%= row.registration.contactName %> (<%= row.registration.contactEmail %>)</td>
-              <td>$<%= (row.payment?.amountCents ?? row.registration.totalCents) / 100 %></td>
-              <td><%= row.payment?.payerName ?? 'Not submitted' %></td>
-              <td><%= row.payment?.zelleReference ?? 'Not submitted' %></td>
-              <td><%= row.payment?.declaredAt ? row.payment.declaredAt.toISOString() : 'Not submitted' %></td>
-              <td>
+              <td data-label="Household"><%= row.registration.contactName %> (<%= row.registration.contactEmail %>)</td>
+              <td data-label="Amount due">$<%= (row.payment?.amountCents ?? row.registration.totalCents) / 100 %></td>
+              <td data-label="Payer"><%= row.payment?.payerName ?? 'Not submitted' %></td>
+              <td data-label="Zelle reference"><%= row.payment?.zelleReference ?? 'Not submitted' %></td>
+              <td data-label="Declared"><%= row.payment?.declaredAt ? row.payment.declaredAt.toISOString() : 'Not submitted' %></td>
+              <td data-label="Action">
                 <form method="post" action="/admin/payments/<%= row.registration.id %>/confirm?event=<%= it.event.slug %>">
                   <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
                   <button class="button" type="submit">Confirm payment</button>

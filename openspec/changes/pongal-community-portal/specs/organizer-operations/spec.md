@@ -14,12 +14,33 @@ The organizer dashboard SHALL provide separate pages for registrations, payment 
 - **THEN** the site header menu (mobile menu and desktop navigation) offers "Dashboard", "Registrations", "Payments", "Volunteers", "Check-in Access", "Scan Passes", and "Public site" as separate pages, marks the current page, and the pages themselves do not repeat this navigation below the header
 
 #### Scenario: Organizer reviews a wide table on a phone
-- **WHEN** an organizer views a report or payment table wider than the screen
-- **THEN** the table scrolls horizontally within the page so every column, including the "Confirm payment" action, is reachable without rotating the device
+- **WHEN** an organizer views the payment or check-in access table on a screen narrower than 48rem
+- **THEN** each row is shown as a stacked card with every column label and value visible, including the "Confirm payment" action, without horizontal scrolling or rotating the device
+
+#### Scenario: Organizer scrolls registration and volunteer reports
+- **WHEN** an organizer views the Registrations or Volunteers table on a screen narrower than the table
+- **THEN** the table keeps its columns on one line and scrolls horizontally inside the page with a visible scrollbar and a "Scroll sideways to see all columns" hint, while the page itself does not scroll sideways
+
+#### Scenario: Organizer reads attendees grouped by household
+- **WHEN** an organizer views the Registrations or Volunteers table
+- **THEN** each household appears once, with its contact name and email together in a single Household cell spanning its attendee rows, and on Registrations the performances, amount, and payment status also appear once per household
+
+#### Scenario: Organizer reviews tables on a desktop
+- **WHEN** an organizer views an admin table on a wide screen
+- **THEN** the admin page uses a wider layout and the table scrolls horizontally within the page if it still does not fit
+
+#### Scenario: Organizer reads attendee ages
+- **WHEN** an organizer views registrations, volunteers, or the CSV export
+- **THEN** the column is labelled "Age group" and values are shown as "11+", "5-10", or "0-4"
 
 #### Scenario: Unauthenticated visitor opens an organizer page
 - **WHEN** a visitor without organizer authentication requests any organizer page
 - **THEN** no organizer data is returned and access is denied
+
+#### Scenario: Developer tests organizer pages locally
+- **GIVEN** NODE_ENV is development, Cloudflare Access is not configured, and ADMIN_DEV_EMAIL is set
+- **WHEN** a request reaches an organizer page directly from localhost without proxy headers
+- **THEN** the page is shown as that email, while proxied, non-localhost, and non-development requests are still denied and configuration refuses ADMIN_DEV_EMAIL outside development
 
 #### Scenario: Organizer access is misconfigured
 - **WHEN** a request is denied because the Cloudflare Access token is missing, has the wrong audience, has the wrong issuer, or has no email

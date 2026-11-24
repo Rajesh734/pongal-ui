@@ -28,17 +28,17 @@
 <% if (!it.rows.length) { %>
       <p class="muted">No check-in volunteers have been approved.</p>
 <% } else { %>
-      <div class="table-scroll">
+      <div class="table-scroll table-stack">
         <table>
           <thead><tr><th>Household</th><th>Email</th><th>Granted by</th><th>Granted at</th><th>Action</th></tr></thead>
           <tbody>
 <% it.rows.forEach((row) => { %>
             <tr>
-              <td><%= row.household.name %></td>
-              <td><%= row.household.email %></td>
-              <td><%= row.permission.grantedBy %></td>
-              <td><%= row.permission.grantedAt.toISOString() %></td>
-              <td>
+              <td data-label="Household"><%= row.household.name %></td>
+              <td data-label="Email"><%= row.household.email %></td>
+              <td data-label="Granted by"><%= row.permission.grantedBy %></td>
+              <td data-label="Granted at"><%= row.permission.grantedAt.toISOString() %></td>
+              <td data-label="Action">
                 <form method="post" action="/admin/check-in-access/<%= row.permission.id %>/revoke?event=<%= it.event.slug %>">
                   <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
                   <button class="button" type="submit">Revoke</button>

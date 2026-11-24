@@ -11,6 +11,7 @@ import {
   registrationVolunteerRoles,
   registrations,
 } from '../../db/schema/index.js';
+import { ageGroupLabel } from '../../shared/registration-pricing.js';
 
 export class CheckInPermissionError extends Error {
   constructor(message) {
@@ -59,7 +60,7 @@ export function volunteerRows(registrationRows, roleLabels, roleFilter = 'all') 
       householdName: row.household.name,
       householdEmail: row.household.email,
       attendeeName: attendee.name,
-      ageBand: attendee.ageBand,
+      ageGroup: ageGroupLabel(attendee.ageBand),
       roles: attendee.volunteerRoles.map((code) => roleLabels[code] ?? code),
     })));
 }
@@ -73,7 +74,7 @@ function csvCell(value) {
 export function registrationCsv(event, rows) {
   const header = [
     'Event', 'Registration ID', 'Household contact', 'Email', 'Mobile', 'WhatsApp',
-    'Attendee', 'Age band', 'Volunteer roles', 'Registration status', 'Payment status',
+    'Attendee', 'Age group', 'Volunteer roles', 'Registration status', 'Payment status',
     'Amount due (USD)', 'Payer name', 'Zelle reference', 'Performance', 'Participants', 'Duration minutes', 'Compere introduction',
   ];
   const records = rows.flatMap((row) => row.attendees.map((attendee) => [
@@ -84,7 +85,7 @@ export function registrationCsv(event, rows) {
     row.registration.contactMobileE164,
     row.registration.contactWhatsappE164,
     attendee.name,
-    attendee.ageBand,
+    ageGroupLabel(attendee.ageBand),
     attendee.volunteerRoles.join('; '),
     row.registration.status,
     row.payment?.status,

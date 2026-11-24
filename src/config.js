@@ -46,9 +46,13 @@ const base = z.object({
   SMTP_PASS: text.optional(),
   CF_ACCESS_TEAM_DOMAIN: text.optional(),
   CF_ACCESS_AUD: text.optional(),
+  ADMIN_DEV_EMAIL: z.string().trim().email().optional(),
 });
 
 const schema = base.superRefine((cfg, ctx) => {
+  if (cfg.ADMIN_DEV_EMAIL && cfg.NODE_ENV !== 'development') {
+    ctx.addIssue({ code: 'custom', path: ['ADMIN_DEV_EMAIL'], message: 'only allowed when NODE_ENV=development' });
+  }
   if (cfg.NODE_ENV === 'production' && !cfg.QR_PASS_ENCRYPTION_KEY) {
     ctx.addIssue({ code: 'custom', path: ['QR_PASS_ENCRYPTION_KEY'], message: 'required' });
   }

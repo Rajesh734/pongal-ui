@@ -22,6 +22,35 @@ for (const prefix of ['mobile', 'whatsapp']) {
   updateOtherCountryCode();
 }
 
+// Closed selects show just the calling code; the open list shows full country names.
+for (const select of document.querySelectorAll('select[data-short-label]')) {
+  for (const option of select.options) option.dataset.full = option.textContent;
+  const shorten = () => {
+    for (const option of select.options) {
+      option.textContent = option.selected ? (option.value.startsWith('+') ? option.value : 'Other') : option.dataset.full;
+    }
+  };
+  const expand = () => {
+    for (const option of select.options) option.textContent = option.dataset.full;
+  };
+  select.addEventListener('pointerdown', expand);
+  select.addEventListener('keydown', (event) => { if (!['Tab', 'Shift'].includes(event.key)) expand(); });
+  select.addEventListener('change', shorten);
+  select.addEventListener('blur', shorten);
+  shorten();
+}
+
+const whatsappSame = document.querySelector('#whatsappSameAsMobile');
+const whatsappFields = document.querySelector('[data-whatsapp-fields]');
+if (whatsappSame && whatsappFields) {
+  const updateWhatsapp = () => {
+    whatsappFields.hidden = whatsappSame.checked;
+    whatsappFields.querySelectorAll('input, select').forEach((input) => { input.disabled = whatsappSame.checked; });
+  };
+  whatsappSame.addEventListener('change', updateWhatsapp);
+  updateWhatsapp();
+}
+
 function updateFamilySummary() {
   if (!familySummary || !list) return;
   const prices = JSON.parse(familySummary.dataset.prices);
@@ -49,7 +78,9 @@ if (list && template && addButton) {
     const rows = [...list.querySelectorAll('.attendee-row')];
     rows.forEach((row, position) => {
       row.querySelector('legend').textContent = `Attendee ${position + 1}`;
-      row.querySelector('[data-remove-attendee]').disabled = position === 0;
+      const removeButton = row.querySelector('[data-remove-attendee]');
+      removeButton.disabled = position === 0;
+      removeButton.hidden = position === 0;
 
       const name = row.querySelector('input[name="attendeeName"]');
       const ageBand = row.querySelector('[name="attendeeAgeBand"]');
@@ -88,6 +119,9 @@ if (list && template && addButton) {
   });
 
   list.addEventListener('change', (event) => {
+    if (event.target.matches('input[name^="attendeeWilling_"]') && !event.target.checked) {
+      event.target.closest('.attendee-volunteer').querySelectorAll('input[name^="attendeeRoles_"]').forEach((input) => { input.checked = false; });
+    }
     if (event.target.matches('select[name="attendeeAgeBand"]')) {
       updateVolunteerEligibility(event.target.closest('.attendee-row'));
       updateFamilySummary();
@@ -114,28 +148,41 @@ const addPerformanceButton = document.querySelector('#add-performance');
 
 if (performanceList && performanceTemplate && addPerformanceButton) {
   const maximum = Number(performanceList.dataset.maxPerformances);
+  const { limitSolo, limitSmall, limitLarge } = performanceList.dataset;
   let nextIndex = performanceList.querySelectorAll('.performance-row').length;
+
+  const updateDurationLimit = (row) => {
+    const count = Number(row.querySelector('[name="performanceParticipantCount"]').value);
+    const duration = row.querySelector('[name="performanceDuration"]');
+    const hint = row.querySelector('[data-duration-hint]');
+    if (!count) {
+      duration.max = limitLarge;
+      hint.textContent = 'Enter performers to see the time limit.';
+      return;
+    }
+    const [limit, group] = count === 1 ? [limitSolo, 'a solo'] : count <= 4 ? [limitSmall, '2-4 performers'] : [limitLarge, '5 or more performers'];
+    duration.max = limit;
+    hint.textContent = `Up to ${limit} minutes for ${group}.`;
+  };
 
   const updatePerformances = () => {
     const rows = [...performanceList.querySelectorAll('.performance-row')];
     rows.forEach((row, position) => {
       row.querySelector('legend').textContent = `Performance ${position + 1}`;
-      const fields = [
-        ['performanceTitle', 'Performance name or type'],
-        ['performanceParticipants', 'Performer or group name'],
-        ['performanceParticipantCount', 'Number of performers'],
-        ['performanceDuration', 'Duration in minutes'],
-        ['performanceIntroduction', 'Short introduction for the compere'],
-      ];
-      for (const [field, labelText] of fields) {
+      for (const field of ['performanceTitle', 'performanceParticipants', 'performanceParticipantCount', 'performanceDuration', 'performanceIntroduction']) {
         const input = row.querySelector(`[name="${field}"]`);
         input.id = `${field}${position}`;
-        const label = [...row.querySelectorAll('label')].find((item) => item.textContent === labelText);
-        if (label) label.htmlFor = input.id;
+        input.closest('.form-control').querySelector('label').htmlFor = input.id;
       }
+      updateDurationLimit(row);
     });
+    addPerformanceButton.hidden = rows.length >= maximum;
     addPerformanceButton.disabled = rows.length >= maximum;
   };
+
+  performanceList.addEventListener('input', (event) => {
+    if (event.target.matches('[name="performanceParticipantCount"]')) updateDurationLimit(event.target.closest('.performance-row'));
+  });
 
   addPerformanceButton.addEventListener('click', () => {
     if (performanceList.querySelectorAll('.performance-row').length >= maximum) return;

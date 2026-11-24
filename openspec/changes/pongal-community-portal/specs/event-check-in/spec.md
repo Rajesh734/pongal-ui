@@ -68,7 +68,11 @@ The scanner SHALL show the registration identity and attendee count before check
 
 #### Scenario: Organizer reviews family before admitting
 - **WHEN** an authorized user scans a valid, not-yet-checked-in family pass
-- **THEN** the scanner shows the household contact name, attendee names, and total attendee count with a "Check in household" action
+- **THEN** the scanner shows the household contact name, total attendee count, and each attendee's name and age group in large bold text, with a "Check in household" action
+
+#### Scenario: Scan result is colour coded
+- **WHEN** a scan or check-in completes
+- **THEN** a successful check-in is shown in a green panel, "This household was already checked in." in a yellow panel, and an invalid, unpaid, or wrong-event pass in a red panel, each with a bold message
 
 #### Scenario: Camera is unavailable
 - **WHEN** the browser cannot access the device camera

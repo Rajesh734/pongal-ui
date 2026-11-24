@@ -15,7 +15,7 @@ function validRegistration(overrides = {}) {
     contactName: 'Priya',
     contactEmail: 'Priya@Example.com',
     mobileCountryCode: '+1',
-    mobileNumber: '6039700000',
+    mobileNumber: '6031234567',
     whatsappCountryCode: '+91',
     whatsappNumber: '9876543210',
     whatsappConsent: true,
@@ -34,7 +34,7 @@ describe('registration schema', () => {
     const result = validateRegistration(schema, validRegistration());
     expect(result.ok).toBe(true);
     expect(result.data.contactEmail).toBe('priya@example.com');
-    expect(result.data.mobileE164).toBe('+16039700000');
+    expect(result.data.mobileE164).toBe('+16031234567');
     expect(result.data.whatsappE164).toBe('+919876543210');
     expect(result.data.attendees.map((attendee) => attendee.feeCents)).toEqual([3500, 2500, 0]);
     expect(result.data.totalCents).toBe(6000);
@@ -134,6 +134,21 @@ describe('registration schema', () => {
     expect(result.errors.whatsappConsent).toBe('Please agree before we contact you on WhatsApp.');
   });
 
+  it('uses the mobile number for WhatsApp when marked the same', () => {
+    const result = validateRegistration(schema, validRegistration({
+      whatsappSameAsMobile: 'yes', whatsappCountryCode: '+91', whatsappNumber: '1111111111', whatsappConsent: true,
+    }));
+    expect(result.ok).toBe(true);
+    expect(result.data.whatsappE164).toBe(result.data.mobileE164);
+
+    const withoutConsent = validateRegistration(schema, validRegistration({ whatsappSameAsMobile: 'yes', whatsappConsent: false }));
+    expect(withoutConsent.errors.whatsappConsent).toBe('Please agree before we contact you on WhatsApp.');
+
+    const badMobile = validateRegistration(schema, validRegistration({ whatsappSameAsMobile: 'yes', mobileNumber: '123' }));
+    expect(badMobile.errors.mobileE164).toBe('Enter a 10-digit mobile number.');
+    expect(badMobile.errors.whatsappE164).toBeUndefined();
+  });
+
   it('enforces performance limits by performer count', () => {
     const performance = { title: 'Dance', participantNames: 'Family group', participantCount: 4, durationMinutes: 5, compereIntroduction: 'A traditional dance.' };
     expect(validateRegistration(schema, validRegistration({ performances: [performance] })).ok).toBe(true);
@@ -199,7 +214,7 @@ describe('registration schema', () => {
   });
 
   it('rejects invalid numbers and a missing custom calling code', () => {
-    for (const mobileNumber of ['12', '603970000', '60397000000']) {
+    for (const mobileNumber of ['12', '603123456', '60312345678']) {
       const invalidNumber = validateRegistration(schema, validRegistration({ mobileNumber }));
       expect(invalidNumber.ok).toBe(false);
       expect(invalidNumber.errors.mobileE164).toBe('Enter a 10-digit mobile number.');

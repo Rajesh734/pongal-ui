@@ -68,6 +68,38 @@ afterEach(async () => {
   jwksServer = undefined;
 });
 
+describe('local development admin login', () => {
+  const devConfig = (overrides = {}) => testConfig({ NODE_ENV: 'development', ADMIN_DEV_EMAIL: 'dev-admin@example.com', ...overrides });
+
+  it('admits direct localhost requests in development', async () => {
+    app = await buildApp(devConfig(), { database: { ping: async () => {} } });
+    const res = await app.inject({ url: '/admin' });
+    expect(res.statusCode).not.toBe(403);
+  });
+
+  it('denies requests that arrived through a proxy or tunnel', async () => {
+    app = await buildApp(devConfig(), { database: { ping: async () => {} } });
+    for (const header of ['x-forwarded-for', 'cf-connecting-ip', 'forwarded', 'x-real-ip']) {
+      const res = await app.inject({ url: '/admin', headers: { [header]: '203.0.113.9' } });
+      expect(res.statusCode).toBe(403);
+    }
+  });
+
+  it('is ignored outside development', async () => {
+    app = await buildApp(devConfig({ NODE_ENV: 'production' }), { database: { ping: async () => {} } });
+    expect((await app.inject({ url: '/admin' })).statusCode).toBe(403);
+  });
+
+  it('is ignored when Cloudflare Access is configured', async () => {
+    const keys = await accessKeys();
+    app = await buildApp(devConfig({ CF_ACCESS_TEAM_DOMAIN: TEAM_DOMAIN, CF_ACCESS_AUD: AUDIENCE }), {
+      database: { ping: async () => {} },
+      jwks: keys.jwks,
+    });
+    expect((await app.inject({ url: '/admin' })).statusCode).toBe(403);
+  });
+});
+
 describe('admin Access verification', () => {
   it('Valid token', async () => {
     const keys = await accessKeys();

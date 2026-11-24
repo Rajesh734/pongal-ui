@@ -13,25 +13,40 @@
         </div>
         <p id="camera-status" class="muted" aria-live="polite">Tap the button and allow camera access, then point the camera at the household entry pass. You can also enter the pass code manually.</p>
       </section>
-<% if (it.result?.status === 'ready') { %>
-      <section class="check-in-preview">
+<%
+  const result = it.result;
+  const tone = !result ? null
+    : result.status === 'ready' ? 'ready'
+    : result.status === 'checked_in' ? 'success'
+    : result.status === 'already_checked_in' ? 'warning'
+    : 'error';
+  const resultMessage = result && result.status !== 'ready' ? it.errorMessages[result.status] ?? it.errorMessages.invalid : null;
+%>
+<% if (result) { %>
+      <section class="check-in-result check-in-result--<%= tone %>" role="<%= tone === 'error' ? 'alert' : 'status' %>">
+<% if (tone === 'ready') { %>
         <h2>Review household</h2>
-        <p><%= it.result.household.name %> - <%= it.result.attendees.length %> attendees</p>
+<% } else { %>
+        <p class="check-in-result__message"><%= resultMessage %></p>
+<% } %>
+<% if (result.household) { %>
+        <p class="check-in-result__household"><%= result.household.name %> - <%= result.attendees?.length ?? 0 %> <%= result.attendees?.length === 1 ? 'attendee' : 'attendees' %></p>
+<% } %>
+<% if (result.attendees?.length) { %>
         <ul>
-<% it.result.attendees.forEach((attendee) => { %>
-          <li><%= attendee.name %></li>
+<% result.attendees.forEach((attendee) => { %>
+          <li><%= attendee.name %> (<%= it.ageGroupLabels[attendee.ageBand] ?? attendee.ageBand %>)</li>
 <% }) %>
         </ul>
+<% } %>
+<% if (tone === 'ready') { %>
         <form method="post" action="/check-in/confirm">
           <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
-          <input type="hidden" name="token" value="<%= it.result.token ?? '' %>">
+          <input type="hidden" name="token" value="<%= result.token ?? '' %>">
           <button class="button primary" type="submit">Check in household</button>
         </form>
+<% } %>
       </section>
-<% } else if (it.result?.status && it.result.status !== 'checked_in') { %>
-      <p class="notice"><%= it.errorMessages[it.result.status] %></p>
-<% } else if (it.result?.status === 'checked_in') { %>
-      <p class="notice"><%= it.errorMessages.checked_in %></p>
 <% } %>
       <form method="post" action="/check-in/preview" data-validate-on-blur novalidate>
         <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">

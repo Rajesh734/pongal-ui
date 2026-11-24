@@ -18,11 +18,26 @@ The root route SHALL render the Pongal event Home page with event details and a 
 - **THEN** the page does not present prior-year flyer details as confirmed 2027 information
 
 ### Requirement: Portal navigation exposes the agreed pages
-The public navigation SHALL include Home, Register, and About. Account actions SHALL appear in a dropdown opened from a user icon at the top right: Sign in and Sign up for signed-out visitors, and Profile, My Registrations, and Log out for signed-in households. Households with active check-in permission SHALL also see Scan Passes in the account menu. On admin pages, the header navigation SHALL show the organizer links instead of the public links. On narrow screens the header links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
+The public navigation SHALL include Home, Register, and About. On admin pages, the header navigation SHALL show the organizer links instead of the public links. On narrow screens the header links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
 
 #### Scenario: Signed-out visitor sees navigation
 - **WHEN** a signed-out visitor opens the Home page
-- **THEN** navigation offers Home, Register, and About, the user icon menu offers Sign in and Sign up, and there is no Interest Survey link
+- **THEN** navigation offers Home, Register, and About, and there is no Interest Survey link
+
+#### Scenario: Mobile visitor uses the menu
+- **WHEN** a visitor opens the site on a 360 px wide screen
+- **THEN** a three-line menu icon at the top left reveals Home, About, and Register without horizontal scrolling
+
+#### Scenario: Visitor dismisses an open menu
+- **WHEN** the navigation or account menu is open and the visitor clicks outside it or presses Escape
+- **THEN** the menu closes without a second click on its icon
+
+### Requirement: Account menu offers household actions
+Account actions SHALL appear in a dropdown opened from a user icon at the top right: Sign in and Sign up for signed-out visitors, and Profile, My Registrations, and Log out for signed-in households. Households with active check-in permission SHALL also see Scan Passes.
+
+#### Scenario: Signed-out visitor opens the account menu
+- **WHEN** a signed-out visitor opens the user icon menu
+- **THEN** it offers Sign in and Sign up
 
 #### Scenario: Signed-in household sees navigation
 - **WHEN** a household is signed in
@@ -33,13 +48,8 @@ The public navigation SHALL include Home, Register, and About. Account actions S
 - **WHEN** it opens the user icon menu
 - **THEN** the menu also offers Scan Passes, and households without that permission do not see it
 
-#### Scenario: Mobile visitor uses the menu
-- **WHEN** a visitor opens the site on a 360 px wide screen
-- **THEN** a three-line menu icon at the top left reveals Home, About, and Register without horizontal scrolling
-
-#### Scenario: Visitor dismisses an open menu
-- **WHEN** the navigation or account menu is open and the visitor clicks outside it or presses Escape
-- **THEN** the menu closes without a second click on its icon
+### Requirement: Existing survey stays out of navigation
+The existing interest survey implementation and data SHALL be retained, but portal navigation MUST NOT link to it.
 
 #### Scenario: Existing survey is retained but hidden
 - **WHEN** a visitor uses the portal navigation

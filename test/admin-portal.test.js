@@ -38,7 +38,7 @@ async function setup() {
     contactName: '=Household',
     contactEmail: 'priya@example.com',
     mobileCountryCode: '+1',
-    mobileNumber: '6039700000',
+    mobileNumber: '6031234567',
     attendees: [
       { name: '=2+2', ageBand: '11_plus', willingToVolunteer: true, volunteerRoles: ['registration_desk', 'photography'] },
       { name: 'Nila', ageBand: 'under_5', willingToVolunteer: false, volunteerRoles: [] },
@@ -106,6 +106,9 @@ describe('organizer portal reports', () => {
     expect(pending.body).toContain('=Household');
     expect(pending.body).toContain('Family Dance (5 min)');
     expect(pending.body).toContain('Payment pending');
+    expect(pending.body).toContain('<th>Household</th><th>Attendee</th><th>Age group</th>');
+    expect(pending.body).toMatch(/<td rowspan="\d+" class="household-cell">\s*<strong>=Household/);
+    expect(pending.body).not.toContain('<th>Email</th>');
     const confirmed = await app.inject({ url: '/admin/registrations?event=pongal-2027&status=confirmed', headers: adminHeaders() });
     expect(confirmed.body).toContain('No registrations match these filters.');
   });
@@ -122,6 +125,13 @@ describe('organizer portal reports', () => {
     expect(volunteers.body).toContain('=2+2');
     expect(volunteers.body).toContain('Registration desk, Photography');
     expect(volunteers.body).not.toContain('Nila');
+    expect(volunteers.body).toContain('<th>Age group</th>');
+    expect(volunteers.body).toContain('<td>11+</td>');
+    expect(volunteers.body).toContain('class="household-cell"');
+    expect(volunteers.body).toContain('<th>Household</th><th>Attendee</th><th>Age group</th><th>Roles</th>');
+    expect(volunteers.body).toContain('class="table-scroll table-scroll--wide"');
+    expect(volunteers.body).not.toContain('table-stack');
+    expect(volunteers.body).not.toContain('Age band');
 
     const photography = await app.inject({ url: '/admin/volunteers?event=pongal-2027&role=photography', headers: adminHeaders() });
     expect(photography.body).toContain('=2+2');
@@ -141,7 +151,10 @@ describe('organizer portal reports', () => {
     expect(response.body).toContain("'=Household");
     expect(response.body).toContain("'=2+2");
     expect(response.body).toContain("'=SUM(A1:A2)");
-    expect(response.body).toContain("'+16039700000");
+    expect(response.body).toContain("'+16031234567");
+    expect(response.body).toContain('"Age group"');
+    expect(response.body).toContain('"11+"');
+    expect(response.body).not.toContain('11_plus');
     expect(response.body.split('\r\n')).toHaveLength(3);
   });
 

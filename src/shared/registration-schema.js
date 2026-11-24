@@ -49,18 +49,23 @@ export function normalizeRegistrationInput(raw = {}) {
       })).filter((performance) => Object.values(performance).some((value) => value != null && String(value).trim() !== ''));
 
   const mobileCountryCode = raw.mobileCountryCode ?? '+1';
-  const whatsappCountryCode = raw.whatsappCountryCode ?? '+1';
+  const mobileE164 = normalizedPhone(raw.mobileE164, mobileCountryCode, raw.mobileNumber, raw.mobileOtherCountryCode);
+  const whatsappSameAsMobile = checked(raw.whatsappSameAsMobile);
+  const whatsappCountryCode = whatsappSameAsMobile ? mobileCountryCode : raw.whatsappCountryCode ?? '+1';
   return {
     contactName: raw.contactName ?? raw.name ?? attendees[0]?.name,
     contactEmail: raw.contactEmail ?? raw.email,
     mobileCountryCode,
     mobileNumber: raw.mobileNumber ?? '',
     mobileOtherCountryCode: raw.mobileOtherCountryCode ?? '',
+    whatsappSameAsMobile,
     whatsappCountryCode,
-    whatsappNumber: raw.whatsappNumber ?? '',
-    whatsappOtherCountryCode: raw.whatsappOtherCountryCode ?? '',
-    mobileE164: normalizedPhone(raw.mobileE164, mobileCountryCode, raw.mobileNumber, raw.mobileOtherCountryCode),
-    whatsappE164: normalizedPhone(raw.whatsappE164, whatsappCountryCode, raw.whatsappNumber, raw.whatsappOtherCountryCode),
+    whatsappNumber: whatsappSameAsMobile ? raw.mobileNumber ?? '' : raw.whatsappNumber ?? '',
+    whatsappOtherCountryCode: whatsappSameAsMobile ? raw.mobileOtherCountryCode ?? '' : raw.whatsappOtherCountryCode ?? '',
+    mobileE164,
+    whatsappE164: whatsappSameAsMobile
+      ? mobileE164
+      : normalizedPhone(raw.whatsappE164, whatsappCountryCode, raw.whatsappNumber, raw.whatsappOtherCountryCode),
     whatsappConsent: checked(raw.whatsappConsent),
     attendees,
     performances,
@@ -185,5 +190,6 @@ export function validateRegistration(schema, raw) {
   if (normalized.whatsappE164 && normalized.whatsappCountryCode === 'other' && !OTHER_CALLING_CODE.test(normalized.whatsappOtherCountryCode)) {
     errors.whatsappE164 = 'Enter a valid calling code for the WhatsApp number.';
   }
+  if (normalized.whatsappSameAsMobile) delete errors.whatsappE164;
   return { ok: false, errors };
 }
