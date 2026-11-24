@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { clientIp, turnstileEnabled, verifyTurnstile } from '../../core/abuse.js';
 import { surveyState } from '../../core/survey-state.js';
 import { formatLongInZone } from '../../core/time.js';
-import { messages as m } from '../../shared/survey-messages.js';
+import { createMessages, messages } from '../../shared/survey-messages.js';
 import { buildSurveySchema, headcountKey, likelihoodKey, validateSurvey } from '../../shared/survey-schema.js';
 import { findActiveByTokenHash, findEventBySlug, listEvents, loadAnswers } from './repo.js';
 import { saveFromEditLink, saveFromPublicForm } from './service.js';
@@ -59,30 +59,33 @@ function formValues(household, response, answers) {
 }
 
 /** Label-based summary rows of saved answers for the confirmation page. */
-function summaryRows(event, household, response, answers) {
+function summaryRows(event, household, response, answers, t) {
   const { survey, days } = event.configSnapshot;
-  const label = (options, code) => options.find((o) => o.code === code)?.label ?? code;
-  const likelihoodLabel = { definitely: 'Definitely', likely: 'Likely', maybe: 'Maybe' };
+  const label = (options, code) => t(options.find((o) => o.code === code)?.label ?? code);
+  const likelihoodLabel = { definitely: t('Definitely'), likely: t('Likely'), maybe: t('Maybe') };
   return [
-    ['Name', household.name],
-    ['Email', household.email],
-    ['Mobile', household.mobileE164 ? nationalMobile(household.mobileE164) : 'Not given'],
-    ...answers.days.map((d) => [days.find((x) => x.date === d.date)?.label ?? d.date, likelihoodLabel[d.likelihood]]),
-    ...survey.headcount_bands.map((b) => [b.label, String(answers.headcounts.find((h) => h.code === b.code)?.count ?? 0)]),
-    ['Food preference', label(survey.food_options, response.foodCode)],
-    ['Volunteer roles', answers.roles.length ? answers.roles.map((r) => label(survey.volunteer_roles, r)).join(', ') : 'None'],
-    ['Cultural performance', label(survey.cultural_options, response.culturalCode)],
-    ['Contribution per adult', label(survey.contribution_options, response.contributionCode)],
-    ['Comments', response.comments ?? 'None'],
+    [t('Name'), household.name],
+    [t('Email'), household.email],
+    [t('Mobile'), household.mobileE164 ? nationalMobile(household.mobileE164) : t('Not given')],
+    ...answers.days.map((d) => [t(days.find((x) => x.date === d.date)?.label ?? d.date), likelihoodLabel[d.likelihood]]),
+    ...survey.headcount_bands.map((b) => [t(b.label), String(answers.headcounts.find((h) => h.code === b.code)?.count ?? 0)]),
+    [t('Food preference'), label(survey.food_options, response.foodCode)],
+    [t('Volunteer roles'), answers.roles.length ? answers.roles.map((r) => label(survey.volunteer_roles, r)).join(', ') : t('None')],
+    [t('Cultural performance'), label(survey.cultural_options, response.culturalCode)],
+    [t('Contribution per adult'), label(survey.contribution_options, response.contributionCode)],
+    [t('Comments'), response.comments ?? t('None')],
   ];
 }
 
 export async function surveyRoutes(app, { db, config, now = () => new Date(), fetchImpl = fetch, mailer = null }) {
   const turnstile = turnstileEnabled(config);
   const schemas = new Map();
-  const schemaFor = (event) => {
-    const key = `${event.id}:${event.configHash}`;
-    if (!schemas.has(key)) schemas.set(key, buildSurveySchema(event.configSnapshot.survey, event.configSnapshot.days));
+  const mFor = (request) => createMessages((key, vars) => request.t(key, vars));
+  const schemaFor = (event, request) => {
+    const key = `${event.id}:${event.configHash}:${request.locale}`;
+    if (!schemas.has(key)) {
+      schemas.set(key, buildSurveySchema(event.configSnapshot.survey, event.configSnapshot.days, mFor(request)));
+    }
     return schemas.get(key);
   };
 
@@ -90,25 +93,31 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
     max: 10,
     timeWindow: 60 * 60 * 1000,
     keyGenerator: clientIp,
-    errorResponseBuilder: () => ({ statusCode: 429, message: m.tooManySubmissions }),
+    errorResponseBuilder: () => ({ statusCode: 429, message: messages.tooManySubmissions }),
   });
   const postOptions = { bodyLimit: BODY_LIMIT, onRequest: submissionLimit };
 
-  const themed = (event) => (event ? { theme: event.configSnapshot.theme ?? null, eventName: event.name, m } : { theme: null, m });
+  const themed = (event, m) => (event ? { theme: event.configSnapshot.theme ?? null, eventName: event.name, m } : { theme: null, m });
 
   const message = (reply, title, text, { status = 200, link, event } = {}) =>
-    reply.code(status).view(`${VIEWS}/message.eta`, { title, message: text, link, ...themed(event) });
+    reply.code(status).view(`${VIEWS}/message.eta`, {
+      title: reply.request.t(title),
+      message: reply.request.t(text),
+      link: link ? { ...link, text: reply.request.t(link.text) } : link,
+      ...themed(event, mFor(reply.request)),
+    });
 
   const windowPage = (reply, event, state) =>
     state === 'not_open'
-      ? message(reply, event.name, m.notOpen(event.name, formatLongInZone(event.surveyOpensAt, event.timezone)), { event })
+      ? message(reply, event.name, mFor(reply.request).notOpen(event.name, formatLongInZone(event.surveyOpensAt, event.timezone)), { event })
       : message(reply, event.name, event.configSnapshot.survey.closed_message, { event });
 
   const invalidLink = (reply, event) =>
-    message(reply, 'Link not valid', m.invalidLink, { status: 404, link: { href: `/s/${event.slug}`, text: 'Fill in the survey' }, event });
+    message(reply, 'Link not valid', mFor(reply.request).invalidLink, { status: 404, link: { href: `/s/${event.slug}`, text: 'Fill in the survey' }, event });
 
   const renderForm = (reply, event, { mode, action, values = {}, errors = {}, summary = null, email = null, status = 200 }) => {
     const count = Object.keys(errors).length;
+    const m = mFor(reply.request);
     return reply.code(status).view(`${VIEWS}/form.eta`, {
       title: event.name,
       event,
@@ -123,7 +132,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
       turnstileSiteKey: turnstile ? config.TURNSTILE_SITE_KEY : null,
       importMap: IMPORT_MAP,
       configJson: surveyConfigJson(event, mode, email),
-      ...themed(event),
+      ...themed(event, m),
       likelihoodKey,
       headcountKey,
     });
@@ -148,6 +157,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
    * must stop. (It cannot return the reply itself: a Fastify reply is thenable, so `await` would unwrap it.)
    */
   async function screen(request, reply, event, form) {
+    const m = mFor(request);
     if (!isEmpty(request.body?.website)) {
       request.log.info('honeypot triggered');
       message(reply, event.name, m.honeypotThanks, { event });
@@ -180,10 +190,10 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
     const candidates = await listEvents(db);
     const event = candidates.find((candidate) => candidate.slug === 'pongal-2027' && candidate.configSnapshot?.registration);
     if (!event) return reply.callNotFound();
-    return reply.view(`${VIEWS}/home.eta`, { title: 'Home', event });
+    return reply.view(`${VIEWS}/home.eta`, { title: request.t('Home'), event });
   });
 
-  app.get('/about', async (_request, reply) => reply.view(`${VIEWS}/about.eta`, { title: 'About' }));
+  app.get('/about', async (request, reply) => reply.view(`${VIEWS}/about.eta`, { title: request.t('About') }));
 
   app.get('/s/:event', async (request, reply) => {
     const event = await loadEvent(request, reply);
@@ -203,7 +213,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
     const form = { mode: 'new', action: `/s/${event.slug}`, values };
     if (await screen(request, reply, event, form)) return reply;
 
-    const result = validateSurvey(schemaFor(event), values);
+    const result = validateSurvey(schemaFor(event, request), values);
     if (!result.ok) return renderForm(reply, event, { ...form, errors: result.errors, status: 400 });
 
     const saved = await saveFromPublicForm(db, { event, data: result.data, tokenKey: config.EDIT_TOKEN_KEY, now: now() });
@@ -214,6 +224,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
         eventName: event.name,
         link: `${request.protocol}://${request.host}${editUrl(event, saved.token)}`,
         closesText: formatLongInZone(event.surveyClosesAt, event.timezone),
+        t: (key, vars) => request.t(key, vars),
       });
     }
     const query = `?saved=${saved.created ? 'new' : 'updated'}${emailed ? '&emailed=1' : ''}`;
@@ -232,16 +243,17 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
     const answers = await loadAnswers(db, response.id);
     const { saved, emailed } = request.query ?? {};
     if (saved === 'new' || saved === 'updated') {
+      const m = mFor(request);
       return reply.view(`${VIEWS}/confirmation.eta`, {
         title: event.name,
         heading: saved === 'new' ? m.savedNew(household.name, event.name) : m.savedUpdated(household.name, event.name),
-        rows: summaryRows(event, household, response, answers),
+        rows: summaryRows(event, household, response, answers, (key, vars) => request.t(key, vars)),
         link: `${request.protocol}://${request.host}${editUrl(event, request.params.token)}`,
         editPath: editUrl(event, request.params.token),
         saveLink: m.saveLink(formatLongInZone(event.surveyClosesAt, event.timezone)),
         emailedNote: emailed === '1' ? m.emailed(household.email) : null,
         importMap: IMPORT_MAP,
-        ...themed(event),
+        ...themed(event, m),
       });
     }
     return renderForm(reply, event, {
@@ -265,7 +277,7 @@ export async function surveyRoutes(app, { db, config, now = () => new Date(), fe
     const form = { mode: 'edit', action: editUrl(event, request.params.token), values, email: found.household.email };
     if (await screen(request, reply, event, form)) return reply;
 
-    const result = validateSurvey(schemaFor(event), values);
+    const result = validateSurvey(schemaFor(event, request), values);
     if (!result.ok) return renderForm(reply, event, { ...form, errors: result.errors, status: 400 });
 
     await saveFromEditLink(db, { event, ...found, data: result.data, now: now() });

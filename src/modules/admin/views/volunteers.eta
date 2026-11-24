@@ -1,33 +1,33 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
-      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <h1>Volunteers</h1>
+      <p class="admin-banner"><%~ it.t('Signed in as {email}', { email: '<strong>' + it.esc(it.adminEmail) + '</strong>' }) %></p>
+      <h1><%= it.t('Volunteers') %></h1>
 <% if (it.message) { %>
       <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
 <% } %>
       <form method="get" action="/admin/volunteers" class="admin-filters">
-        <label for="event">Event</label>
+        <label for="event"><%= it.t('Event') %></label>
         <select id="event" name="event">
 <% it.events.forEach((event) => { %>
           <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
 <% }) %>
         </select>
-        <label for="role">Volunteer role</label>
+        <label for="role"><%= it.t('Volunteer role') %></label>
         <select id="role" name="role">
-          <option value="all" <%= it.roleFilter === 'all' ? 'selected' : '' %>>All roles</option>
+          <option value="all" <%= it.roleFilter === 'all' ? 'selected' : '' %>><%= it.t('All roles') %></option>
 <% it.roleOptions.forEach((role) => { %>
-          <option value="<%= role.code %>" <%= it.roleFilter === role.code ? 'selected' : '' %>><%= role.label %></option>
+          <option value="<%= role.code %>" <%= it.roleFilter === role.code ? 'selected' : '' %>><%= it.t(role.label) %></option>
 <% }) %>
         </select>
-        <button class="button" type="submit">Filter</button>
+        <button class="button" type="submit"><%= it.t('Filter') %></button>
       </form>
 <% if (!it.rows.length) { %>
-      <p class="muted">No attendees have volunteered yet.</p>
+      <p class="muted"><%= it.t('No attendees have volunteered yet.') %></p>
 <% } else { %>
-      <p class="table-scroll-hint muted" aria-hidden="true">Scroll sideways to see all columns &rarr;</p>
-      <div class="table-scroll table-scroll--wide" tabindex="0" role="region" aria-label="Volunteers table">
+      <p class="table-scroll-hint muted" aria-hidden="true"><%= it.t('Scroll sideways to see all columns') %> &rarr;</p>
+      <div class="table-scroll table-scroll--wide" tabindex="0" role="region" aria-label="<%= it.t('Volunteers table') %>">
         <table>
-          <thead><tr><th>Household</th><th>Attendee</th><th>Age group</th><th>Roles</th><th>Check-in access</th></tr></thead>
+          <thead><tr><th><%= it.t('Household') %></th><th><%= it.t('Attendee') %></th><th><%= it.t('Age group') %></th><th><%= it.t('Roles') %></th><th><%= it.t('Check-in access') %></th></tr></thead>
 <%
   const groups = [];
   it.rows.forEach((row) => {
@@ -51,12 +51,12 @@
               <td><%= row.roles.join(', ') %></td>
               <td>
 <% if (it.grantedEmails.has(row.householdEmail)) { %>
-                <span class="muted">Access granted</span>
+                <span class="muted"><%= it.t('Access granted') %></span>
 <% } else { %>
                 <form method="post" action="/admin/check-in-access/grant?event=<%= it.event.slug %>&from=volunteers&role=<%= it.roleFilter %>">
                   <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
                   <input type="hidden" name="email" value="<%= row.householdEmail %>">
-                  <button class="button" type="submit" aria-label="Grant check-in access to <%= row.attendeeName %>">Grant check-in</button>
+                  <button class="button" type="submit" aria-label="<%= it.t('Grant check-in access to {name}', { name: row.attendeeName }) %>"><%= it.t('Grant check-in') %></button>
                 </form>
 <% } %>
               </td>

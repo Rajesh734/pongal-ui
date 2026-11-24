@@ -1,11 +1,14 @@
+import { pageTranslator } from '/shared/i18n/browser.js';
+
+const t = await pageTranslator();
 const cameraButton = document.querySelector('#start-camera');
 const stopButton = document.querySelector('#stop-camera');
 const video = document.querySelector('#check-in-camera');
 const cameraStatus = document.querySelector('#camera-status');
 const lookupForm = document.querySelector('form[action="/check-in/preview"]');
 
-const UNAVAILABLE = 'Camera access is unavailable. Enter the pass code manually or ask an organizer for help.';
-const FAILED = 'Camera scan failed. Enter the pass code manually or ask an organizer for help.';
+const UNAVAILABLE = t('Camera access is unavailable. Enter the pass code manually or ask an organizer for help.');
+const FAILED = t('Camera scan failed. Enter the pass code manually or ask an organizer for help.');
 
 async function createDecoder() {
   if (typeof window.BarcodeDetector?.getSupportedFormats === 'function') {
@@ -44,7 +47,7 @@ if (cameraButton && video && cameraStatus && lookupForm) {
 
   stopButton?.addEventListener('click', () => {
     stopCamera();
-    cameraStatus.textContent = 'Camera stopped.';
+    cameraStatus.textContent = t('Camera stopped.');
   });
 
   cameraButton.addEventListener('click', async () => {
@@ -62,7 +65,7 @@ if (cameraButton && video && cameraStatus && lookupForm) {
       if (stopButton) stopButton.hidden = false;
       await video.play();
       scanning = true;
-      cameraStatus.textContent = 'Point the camera at a household entry pass.';
+      cameraStatus.textContent = t('Point the camera at a household entry pass.');
 
       const scan = async () => {
         if (!scanning) return;
@@ -71,7 +74,7 @@ if (cameraButton && video && cameraStatus && lookupForm) {
           if (value) {
             lookupForm.querySelector('input[name="token"]').value = value;
             stopCamera();
-            cameraStatus.textContent = 'Pass scanned. Looking it up…';
+            cameraStatus.textContent = t('Pass scanned. Looking it up…');
             lookupForm.requestSubmit();
             return;
           }

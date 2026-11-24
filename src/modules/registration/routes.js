@@ -131,7 +131,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       });
       if (mailer?.sendRegistrationAccessEmail && config.APP_BASE_URL) {
         const link = new URL(`/register/access/${created.accessToken}`, config.APP_BASE_URL).toString();
-        await mailer.sendRegistrationAccessEmail({ to: created.household.email, eventName: event.name, link });
+        await mailer.sendRegistrationAccessEmail({ to: created.household.email, eventName: event.name, link, t: (key, vars) => request.t(key, vars) });
       }
       return reply.redirect(`/register/access/${created.accessToken}`, 303);
     } catch (error) {
@@ -313,18 +313,18 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
 
   async function renderCheckIn(request, reply, event, result = null, message = null, statusCode = 200) {
     return reply.code(statusCode).view(`${VIEWS}/check-in.eta`, {
-      title: 'Pongal check-in',
+      title: request.t('Pongal check-in'),
       event,
       result,
-      message,
+      message: message ? request.t(message) : message,
       messageIsError: statusCode >= 400,
       csrfToken: issueCsrfToken(request, reply, config),
       errorMessages: {
-        invalid: 'Pass not recognized. Check the QR code or ask an organizer for help.',
-        payment_pending: 'Payment is not confirmed. Ask an organizer for help.',
-        wrong_event: 'This pass is for a different event.',
-        already_checked_in: 'This household was already checked in.',
-        checked_in: 'Household checked in. Welcome!',
+        invalid: request.t('Pass not recognized. Check the QR code or ask an organizer for help.'),
+        payment_pending: request.t('Payment is not confirmed. Ask an organizer for help.'),
+        wrong_event: request.t('This pass is for a different event.'),
+        already_checked_in: request.t('This household was already checked in.'),
+        checked_in: request.t('Household checked in. Welcome!'),
       },
     });
   }

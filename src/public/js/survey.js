@@ -1,12 +1,16 @@
 // Progressive enhancement for the survey pages (design D3). Without this file the forms still work:
 // the server validates with the same shared schema and messages.
 import Alpine from '/vendor/alpine-csp.mjs';
-import { messages as m } from '/shared/survey-messages.js';
+import { createMessages } from '/shared/survey-messages.js';
 import { buildSurveySchema, validateSurvey } from '/shared/survey-schema.js';
+import { pageTranslator } from '/shared/i18n/browser.js';
+
+const t = await pageTranslator();
+const m = createMessages(t);
 
 const configEl = document.getElementById('survey-config');
 const cfg = configEl ? JSON.parse(configEl.textContent) : null;
-const schema = cfg ? buildSurveySchema(cfg.survey, cfg.days) : null;
+const schema = cfg ? buildSurveySchema(cfg.survey, cfg.days, m) : null;
 const MULTI = ['days', 'roles'];
 
 function readForm(form) {
@@ -116,10 +120,10 @@ Alpine.data('copyLink', () => ({
     const status = document.getElementById('copy-status');
     navigator.clipboard.writeText(event.currentTarget.dataset.link).then(
       () => {
-        status.textContent = 'Link copied.';
+        status.textContent = t('Link copied.');
       },
       () => {
-        status.textContent = 'Could not copy. Please press and hold the link to copy it.';
+        status.textContent = t('Could not copy. Please press and hold the link to copy it.');
       },
     );
   },
