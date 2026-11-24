@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import { messages as m } from '../../shared/survey-messages.js';
+import { createMessages } from '../../shared/survey-messages.js';
+import { format } from '../../shared/i18n/translate.js';
 
 const SEND_TIMEOUT_MS = 10_000;
 const LIMIT_PER_HOUR = 3;
@@ -25,48 +26,47 @@ function createTransport(config) {
 
 const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export function editLinkEmail({ eventName, link, closesText }) {
+export function editLinkEmail({ eventName, link, closesText, t = format }) {
+  const m = createMessages(t);
+  const intro = t('Here is your private link to change your {event} survey answers:', { event: eventName });
+  const works = (until) => t('It works until {closes}.', { closes: until });
   const lines = [
-    `Here is your private link to change your ${eventName} survey answers:`,
+    intro,
     link,
-    `It works until ${closesText}.`,
+    works(closesText),
     m.emailNotYou,
   ];
   const html = [
-    `<p>Here is your private link to change your ${escapeHtml(eventName)} survey answers:</p>`,
+    `<p>${escapeHtml(t('Here is your private link to change your {event} survey answers:', { event: eventName }))}</p>`,
     `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
-    `<p>It works until ${escapeHtml(closesText)}.</p>`,
+    `<p>${escapeHtml(works(closesText))}</p>`,
     `<p>${escapeHtml(m.emailNotYou)}</p>`,
   ];
   return { subject: m.emailSubject(eventName), text: lines.join('\n\n'), html: html.join('\n') };
 }
 
-export function verificationEmail({ link }) {
-  const text = [
-    'Use this one-time link to verify your household account:',
-    link,
-    'This link expires in 24 hours. If you did not request this, ignore this email.',
-  ];
+export function verificationEmail({ link, t = format }) {
+  const intro = t('Use this one-time link to verify your household account:');
+  const expiry = t('This link expires in 24 hours. If you did not request this, ignore this email.');
+  const text = [intro, link, expiry];
   const html = [
-    '<p>Use this one-time link to verify your household account:</p>',
+    `<p>${escapeHtml(intro)}</p>`,
     `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
-    '<p>This link expires in 24 hours. If you did not request this, ignore this email.</p>',
+    `<p>${escapeHtml(expiry)}</p>`,
   ];
-  return { subject: 'Verify your Pongal family account', text: text.join('\n\n'), html: html.join('\n') };
+  return { subject: t('Verify your Pongal family account'), text: text.join('\n\n'), html: html.join('\n') };
 }
 
-export function registrationAccessEmail({ eventName, link }) {
-  const text = [
-    `Your family registration for ${eventName} is saved. Use this private link to review its status and payment instructions:`,
-    link,
-    'Keep this link private. If you did not submit this registration, contact the organizers.',
-  ];
+export function registrationAccessEmail({ eventName, link, t = format }) {
+  const intro = t('Your family registration for {event} is saved. Use this private link to review its status and payment instructions:', { event: eventName });
+  const keep = t('Keep this link private. If you did not submit this registration, contact the organizers.');
+  const text = [intro, link, keep];
   const html = [
-    `<p>Your family registration for ${escapeHtml(eventName)} is saved. Use this private link to review its status and payment instructions:</p>`,
+    `<p>${escapeHtml(intro)}</p>`,
     `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
-    '<p>Keep this link private. If you did not submit this registration, contact the organizers.</p>',
+    `<p>${escapeHtml(keep)}</p>`,
   ];
-  return { subject: `${eventName} registration access`, text: text.join('\n\n'), html: html.join('\n') };
+  return { subject: t('{event} registration access', { event: eventName }), text: text.join('\n\n'), html: html.join('\n') };
 }
 
 /**
@@ -105,8 +105,8 @@ export function createMailer(config, { transport, now = () => Date.now(), logger
   }
 
   return {
-    sendEditLink: ({ to, eventName, link, closesText }) => send(to, editLinkEmail({ eventName, link, closesText }), 'Edit-link'),
-    sendVerificationEmail: ({ to, link }) => send(to, verificationEmail({ link }), 'Verification'),
-    sendRegistrationAccessEmail: ({ to, eventName, link }) => send(to, registrationAccessEmail({ eventName, link }), 'Registration-access'),
+    sendEditLink: ({ to, eventName, link, closesText, t }) => send(to, editLinkEmail({ eventName, link, closesText, t }), 'Edit-link'),
+    sendVerificationEmail: ({ to, link, t }) => send(to, verificationEmail({ link, t }), 'Verification'),
+    sendRegistrationAccessEmail: ({ to, eventName, link, t }) => send(to, registrationAccessEmail({ eventName, link, t }), 'Registration-access'),
   };
 }

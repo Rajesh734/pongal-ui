@@ -1,7 +1,7 @@
 // Survey validation shared by the server and the browser (loaded as /shared/survey-schema.js).
 // The browser resolves 'zod' to /vendor/zod.mjs through an import map, so use only the public Zod API.
 import { z } from 'zod';
-import { messages as m } from './survey-messages.js';
+import { messages as defaultMessages } from './survey-messages.js';
 
 // No eval-based fast path: the site's CSP forbids 'unsafe-eval' in the browser.
 z.config({ jitless: true });
@@ -29,7 +29,7 @@ function mobileDigits(value) {
  * Builds the survey schema for one event. Input is the raw form object (strings, or arrays for repeated
  * fields); output is normalised answers. Each issue path is the form field name it belongs to.
  */
-export function buildSurveySchema(survey, days) {
+export function buildSurveySchema(survey, days, m = defaultMessages) {
   const choice = (options, message) => z.string().refine((v) => codesOf(options).includes(v), message);
   const fields = {
     name: z.string().trim().min(2, m.nameRequired).max(80, m.nameTooLong).regex(NAME_RE, m.nameChars),

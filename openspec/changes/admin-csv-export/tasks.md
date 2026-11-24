@@ -2,7 +2,7 @@
 
 ## 1. Access verification
 
-- [ ] 1.1 Add `jose` and implement the admin plugin with prefix `/admin` and the JWT `onRequest` hook per design D1-D3; verify a Trivy dependency scan shows no new high/critical findings
+- [x] 1.1 Add `jose` and implement the admin plugin with prefix `/admin` and the JWT `onRequest` hook per design D1-D3
 - [x] 1.2 Write a test helper that generates an RSA key pair, serves a local JWKS and signs tokens; add `inject` tests for scenarios "Valid token", "No token", "Token for another application", "Expired token", "Forged token"; verify they pass
 - [x] 1.3 Add tests for scenarios "Look-alike path", "Survey without token" and "Not configured"; verify they pass
 - [x] 1.4 Add tests for scenarios "Cloudflare rotates keys" (JWKS server switches keys, one refetch) and "Key endpoint unreachable"; verify they pass

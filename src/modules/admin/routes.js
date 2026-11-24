@@ -58,7 +58,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
       state: surveyState(event, now()),
       ...(await countActiveResponses(db, event.id)),
     })));
-    return reply.view('modules/admin/views/home.eta', { title: 'Organizer dashboard', adminEmail: request.adminEmail, rows });
+    return reply.view('modules/admin/views/home.eta', { title: request.t('Organizer dashboard'), adminEmail: request.adminEmail, rows });
   });
 
   app.get('/registrations', async (request, reply) => {
@@ -68,7 +68,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const status = selectStatus(request.query.status);
     const rows = event ? await listPortalRegistrations(db, { eventId: event.id, status }) : [];
     return reply.view('modules/admin/views/registrations.eta', {
-      title: 'Registrations', adminEmail: request.adminEmail, events, event, status, rows,
+      title: request.t('Registrations'), adminEmail: request.adminEmail, events, event, status, rows,
     });
   });
 
@@ -107,9 +107,9 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const events = registrationEvents(await listEvents(db));
     const event = selectEvent(events, request.query.event);
     const rows = event ? await listPortalRegistrations(db, { eventId: event.id, status: 'payment_pending' }) : [];
-    const message = request.query.confirmed === '1' ? 'Payment confirmed and entry pass issued.' : null;
+    const message = request.query.confirmed === '1' ? request.t('Payment confirmed and entry pass issued.') : null;
     return reply.view('modules/admin/views/payments.eta', {
-      title: 'Payments', adminEmail: request.adminEmail, events, event, rows, message,
+      title: request.t('Payments'), adminEmail: request.adminEmail, events, event, rows, message,
       csrfToken: issueCsrfToken(request, reply, config),
     });
   });
@@ -132,8 +132,8 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
       if (error instanceof RegistrationEditError) {
         const rows = await listPortalRegistrations(db, { eventId: event.id, status: 'payment_pending' });
         return reply.code(409).view('modules/admin/views/payments.eta', {
-          title: 'Payments', adminEmail: request.adminEmail, events, event, rows,
-          message: error.message, messageIsError: true, csrfToken: issueCsrfToken(request, reply, config),
+          title: request.t('Payments'), adminEmail: request.adminEmail, events, event, rows,
+          message: request.t(error.message), messageIsError: true, csrfToken: issueCsrfToken(request, reply, config),
         });
       }
       throw error;
@@ -148,9 +148,9 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const roleFilter = roleOptions.some((option) => option.code === role) ? role : 'all';
     const registrations = event ? await listPortalRegistrations(db, { eventId: event.id, status: 'all' }) : [];
     const granted = event ? await listActiveCheckInPermissions(db, event.id) : [];
-    const roleLabels = Object.fromEntries(roleOptions.map((option) => [option.code, option.label]));
+    const roleLabels = Object.fromEntries(roleOptions.map((option) => [option.code, request.t(option.label)]));
     return reply.code(statusCode).view('modules/admin/views/volunteers.eta', {
-      title: 'Volunteers', adminEmail: request.adminEmail, events, event, roleOptions, roleFilter,
+      title: request.t('Volunteers'), adminEmail: request.adminEmail, events, event, roleOptions, roleFilter,
       rows: volunteerRows(registrations, roleLabels, roleFilter),
       grantedEmails: new Set(granted.map((row) => row.household.email)),
       message, messageIsError: statusCode >= 400,
@@ -159,7 +159,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
   }
 
   app.get('/volunteers', async (request, reply) => {
-    const message = request.query.granted === '1' ? 'Check-in access granted.' : null;
+    const message = request.query.granted === '1' ? request.t('Check-in access granted.') : null;
     return volunteersPage(request, reply, { eventSlug: request.query.event, role: request.query.role }, message);
   });
 
@@ -169,7 +169,7 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const event = selectEvent(events, eventSlug);
     const rows = event ? await listActiveCheckInPermissions(db, event.id) : [];
     return reply.code(statusCode).view('modules/admin/views/check-in-access.eta', {
-      title: 'Check-in Access', adminEmail: request.adminEmail, events, event, rows, message,
+      title: request.t('Check-in Access'), adminEmail: request.adminEmail, events, event, rows, message,
       messageIsError: statusCode >= 400,
       csrfToken: issueCsrfToken(request, reply, config),
     });
@@ -177,9 +177,9 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
 
   app.get('/check-in-access', async (request, reply) => {
     const message = request.query.granted === '1'
-      ? 'Check-in access granted.'
+      ? request.t('Check-in access granted.')
       : request.query.revoked === '1'
-        ? 'Check-in access revoked.'
+        ? request.t('Check-in access revoked.')
         : null;
     return checkInAccessPage(request, reply, request.query.event, message);
   });
@@ -200,8 +200,8 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     } catch (error) {
       if (error instanceof CheckInPermissionError) {
         return fromVolunteers
-          ? volunteersPage(request, reply, volunteerTarget, error.message, 400)
-          : checkInAccessPage(request, reply, event.slug, error.message, 400);
+          ? volunteersPage(request, reply, volunteerTarget, request.t(error.message), 400)
+          : checkInAccessPage(request, reply, event.slug, request.t(error.message), 400);
       }
       throw error;
     }

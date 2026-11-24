@@ -1,23 +1,23 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
-      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <h1>Organizer dashboard</h1>
-      <p>Manage Pongal registrations, payment review, volunteers, and event check-in access from the menu.</p>
+      <p class="admin-banner"><%~ it.t('Signed in as {email}', { email: '<strong>' + it.esc(it.adminEmail) + '</strong>' }) %></p>
+      <h1><%= it.t('Organizer dashboard') %></h1>
+      <p><%= it.t('Manage Pongal registrations, payment review, volunteers, and event check-in access from the menu.') %></p>
       <details>
-        <summary>Legacy interest survey</summary>
+        <summary><%= it.t('Legacy interest survey') %></summary>
 <% if (!it.rows.length) { %>
-      <p class="muted">No surveys have been configured.</p>
+      <p class="muted"><%= it.t('No surveys have been configured.') %></p>
 <% } else { %>
       <div class="admin-events">
 <% it.rows.forEach((row) => { %>
         <article class="admin-event">
           <h2><%= row.event.name %></h2>
           <dl class="summary admin-summary">
-            <dt>State</dt><dd><%= row.state === 'open' ? 'Open' : row.state === 'not_open' ? 'Not open' : 'Closed' %></dd>
-            <dt>Responses</dt><dd><%= row.families %> <%= row.families === 1 ? 'family' : 'families' %></dd>
-            <dt>People</dt><dd><%= row.people %> <%= row.people === 1 ? 'person' : 'people' %></dd>
+            <dt><%= it.t('State') %></dt><dd><%= row.state === 'open' ? it.t('Open') : row.state === 'not_open' ? it.t('Not open') : it.t('Closed') %></dd>
+            <dt><%= it.t('Responses') %></dt><dd><%= row.families === 1 ? it.t('{n} family', { n: 1 }) : it.t('{n} families', { n: row.families }) %></dd>
+            <dt><%= it.t('People') %></dt><dd><%= row.people === 1 ? it.t('{n} person', { n: 1 }) : it.t('{n} people', { n: row.people }) %></dd>
           </dl>
-          <p><a class="button" href="/admin/events/<%= row.event.slug %>/responses.csv">Download CSV</a></p>
+          <p><a class="button" href="/admin/events/<%= row.event.slug %>/responses.csv"><%= it.t('Download CSV') %></a></p>
         </article>
 <% }) %>
       </div>

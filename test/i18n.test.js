@@ -6,7 +6,9 @@ import { seedEvents } from '../src/db/seed-events.js';
 import { buildApp } from '../src/server.js';
 import { buildRegistrationSchema, validateRegistration } from '../src/shared/registration-schema.js';
 import { CATALOGS, LOCALES } from '../src/shared/i18n/index.js';
+import { editLinkEmail, registrationAccessEmail, verificationEmail } from '../src/modules/survey/mailer.js';
 import { migratedMemoryDb, testConfig } from './helpers.js';
+import { surveyApp } from './survey-app.js';
 
 const APP_BASE_URL = 'https://portal.example.org';
 const QR_KEY = Buffer.alloc(32, 31).toString('base64');
@@ -26,6 +28,17 @@ const DYNAMIC_KEYS = [
   'Too many sign-in attempts. Try again later.',
   'Registration not found',
   'This registration link is no longer valid.',
+  'This person needs a verified household account before check-in access can be granted.',
+  'This registration is no longer available.',
+  'Payment record is missing for this registration.',
+  'Confirmed payment has no entry pass. Contact support.',
+  'This registration is not awaiting payment.',
+  'Payment amount no longer matches the registration total.',
+  'Payment status changed. Reload the payment queue.',
+  'Registration status changed. Reload the payment queue.',
+  "You don't have permission to check in attendees.",
+  'Your check-in access has been revoked.',
+  'Payment pending',
 ];
 
 function sourceFiles(dir) {
@@ -38,7 +51,7 @@ function sourceFiles(dir) {
 }
 
 function literalKeys() {
-  const pattern = /(?:\bit\.t|\brequest\.t|(?<![\w$.]))t\(\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g;
+  const pattern = /(?:\bit\.|\brequest\.|(?<![\w$.]))t\(\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g;
   const keys = new Set();
   for (const file of sourceFiles('src')) {
     const text = readFileSync(file, 'utf8');
@@ -76,6 +89,20 @@ describe('message catalogs', () => {
     for (const code of TRANSLATED) {
       const missing = required.filter((key) => !(key in CATALOGS[code]));
       expect(missing, `${code} is missing translations`).toEqual([]);
+    }
+  });
+
+  it('translate every label and message taken from the event configuration', () => {
+    const [event] = loadEventConfigs('config/events');
+    const { survey, days } = event.config;
+    const labels = [
+      ...[survey.food_options, survey.volunteer_roles, survey.cultural_options, survey.headcount_bands].flat().map((option) => option.label),
+      ...days.map((day) => day.label),
+      survey.closed_message,
+    ].filter((label) => !/^\$/.test(label));
+    for (const code of TRANSLATED) {
+      const missing = labels.filter((label) => !(label in CATALOGS[code]));
+      expect(missing, `${code} is missing event labels`).toEqual([]);
     }
   });
 
@@ -211,5 +238,47 @@ describe('localized validation', () => {
     expect(response.body).toContain(CATALOGS.te['Add at least one attendee to continue.']);
     expect(response.body).toContain(CATALOGS.te['Please fix the highlighted details below.']);
     expect(response.body).toContain('value="priya@example.com"');
+  });
+});
+
+describe('localized survey, emails and organizer pages', () => {
+  it('shows the interest survey and its validation errors in the selected language', async () => {
+    const survey = await surveyApp();
+    try {
+      const page = await survey.app.inject({ url: '/s/pongal-2027', headers: lang('ta') });
+      expect(page.body).toContain('<html lang="ta">');
+      expect(page.body).toContain(CATALOGS.ta['Which days could you attend?']);
+      expect(page.body).toContain(CATALOGS.ta['Veg']);
+      expect(page.body).toContain(CATALOGS.ta['Saturday, Jan 16']);
+
+      const rejected = await survey.submit({ name: '' }, lang('te'));
+      expect(rejected.statusCode).toBe(400);
+      expect(rejected.body).toContain(CATALOGS.te['Please enter your name (at least 2 letters).']);
+    } finally {
+      await survey.app.close();
+    }
+  });
+
+  it('writes emails in the language of the visitor and in English by default', () => {
+    const t = (key, vars) => (CATALOGS.ml[key] ?? key).replace(/\{(\w+)\}/g, (match, name) => vars?.[name] ?? match);
+    const malayalam = verificationEmail({ link: 'https://example.org/v/1', t });
+    expect(malayalam.subject).toBe(CATALOGS.ml['Verify your Pongal family account']);
+    expect(malayalam.text).toContain(CATALOGS.ml['Use this one-time link to verify your household account:']);
+    expect(editLinkEmail({ eventName: 'Pongal 2027', link: 'https://example.org/e', closesText: 'Tue', t }).subject).toBe(CATALOGS.ml['Your {event} survey link'].replace('{event}', 'Pongal 2027'));
+    expect(verificationEmail({ link: 'https://example.org/v/1' }).subject).toBe('Verify your Pongal family account');
+    expect(registrationAccessEmail({ eventName: 'Pongal 2027', link: 'https://example.org/r' }).subject).toBe('Pongal 2027 registration access');
+  });
+
+  it('keeps organizer pages in English and without the language bar', async () => {
+    const survey = await surveyApp({ config: { ADMIN_DEV_EMAIL: 'dev@example.com', NODE_ENV: 'development' } });
+    try {
+      const page = await survey.app.inject({ url: '/admin/payments', headers: lang('kn') });
+      expect(page.statusCode).toBe(200);
+      expect(page.body).toContain('<html lang="en">');
+      expect(page.body).toContain('Payments awaiting organizer verification');
+      expect(page.body).not.toContain('lang-bar');
+    } finally {
+      await survey.app.close();
+    }
   });
 });

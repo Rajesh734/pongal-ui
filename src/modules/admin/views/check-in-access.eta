@@ -1,47 +1,47 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
-      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <h1>Check-in Access</h1>
-      <p>Approved volunteers sign in with their household account and open <a href="/check-in">Scan Passes</a> from the account menu to scan entry pass QR codes. To scan passes yourself, grant access to your own household email.</p>
+      <p class="admin-banner"><%~ it.t('Signed in as {email}', { email: '<strong>' + it.esc(it.adminEmail) + '</strong>' }) %></p>
+      <h1><%= it.t('Check-in Access') %></h1>
+      <p><%~ it.t('Approved volunteers sign in with their household account and open {link} from the account menu to scan entry pass QR codes. To scan passes yourself, grant access to your own household email.', { link: '<a href="/check-in">' + it.esc(it.t('Scan Passes')) + '</a>' }) %></p>
     <% if (it.message) { %>
       <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
       <form method="get" action="/admin/check-in-access" class="admin-filters">
-        <label for="event">Event</label>
+        <label for="event"><%= it.t('Event') %></label>
         <select id="event" name="event">
 <% it.events.forEach((event) => { %>
           <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
 <% }) %>
         </select>
-        <button class="button" type="submit">Filter</button>
+        <button class="button" type="submit"><%= it.t('Filter') %></button>
       </form>
 <% if (it.event) { %>
       <form method="post" action="/admin/check-in-access/grant?event=<%= it.event.slug %>">
         <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
         <fieldset class="field">
-          <label for="email">Verified household account email</label>
+          <label for="email"><%= it.t('Verified household account email') %></label>
           <input id="email" name="email" type="email" autocomplete="email" maxlength="254" required>
         </fieldset>
-        <button class="button" type="submit">Grant check-in access</button>
+        <button class="button" type="submit"><%= it.t('Grant check-in access') %></button>
       </form>
 <% } %>
 <% if (!it.rows.length) { %>
-      <p class="muted">No check-in volunteers have been approved.</p>
+      <p class="muted"><%= it.t('No check-in volunteers have been approved.') %></p>
 <% } else { %>
       <div class="table-scroll table-stack">
         <table>
-          <thead><tr><th>Household</th><th>Email</th><th>Granted by</th><th>Granted at</th><th>Action</th></tr></thead>
+          <thead><tr><th><%= it.t('Household') %></th><th><%= it.t('Email') %></th><th><%= it.t('Granted by') %></th><th><%= it.t('Granted at') %></th><th><%= it.t('Action') %></th></tr></thead>
           <tbody>
 <% it.rows.forEach((row) => { %>
             <tr>
-              <td data-label="Household"><%= row.household.name %></td>
-              <td data-label="Email"><%= row.household.email %></td>
-              <td data-label="Granted by"><%= row.permission.grantedBy %></td>
-              <td data-label="Granted at"><%= row.permission.grantedAt.toISOString() %></td>
-              <td data-label="Action">
+              <td data-label="<%= it.t('Household') %>"><%= row.household.name %></td>
+              <td data-label="<%= it.t('Email') %>"><%= row.household.email %></td>
+              <td data-label="<%= it.t('Granted by') %>"><%= row.permission.grantedBy %></td>
+              <td data-label="<%= it.t('Granted at') %>"><%= row.permission.grantedAt.toISOString() %></td>
+              <td data-label="<%= it.t('Action') %>">
                 <form method="post" action="/admin/check-in-access/<%= row.permission.id %>/revoke?event=<%= it.event.slug %>">
                   <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
-                  <button class="button" type="submit">Revoke</button>
+                  <button class="button" type="submit"><%= it.t('Revoke') %></button>
                 </form>
               </td>
             </tr>
@@ -50,5 +50,5 @@
         </table>
       </div>
 <% } %>
-      <p class="muted">Volunteering does not grant scanner access. Grant and revoke controls will be available here.</p>
+      <p class="muted"><%= it.t('Volunteering does not grant scanner access. Grant and revoke controls will be available here.') %></p>
     </section>

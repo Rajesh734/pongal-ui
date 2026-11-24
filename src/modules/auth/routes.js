@@ -109,7 +109,7 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
     try {
       const { household } = await createManualHouseholdAuth(db, { email, name, passwordHash: await hashPassword(password) });
       const { token } = await createEmailVerificationToken(db, household.id, now());
-      const sent = await mailer.sendVerificationEmail({ to: email, link: verificationUrl(config, token) });
+      const sent = await mailer.sendVerificationEmail({ to: email, link: verificationUrl(config, token), t: (key, vars) => request.t(key, vars) });
       if (!sent) return renderMessage(reply, 'Email verification unavailable', 'We could not send the verification email. Please try again later or contact the organizers.', 503);
       return reply.redirect('/signup?sent=1', 303);
     } catch (error) {

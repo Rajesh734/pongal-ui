@@ -1,10 +1,10 @@
 <%
   const t = it.t ?? ((key) => key);
   const navLinks = it.adminPath
-    ? [['/admin', 'Dashboard'], ['/admin/registrations', 'Registrations'], ['/admin/payments', 'Payments'], ['/admin/volunteers', 'Volunteers'], ['/admin/check-in-access', 'Check-in Access'], ['/check-in', 'Scan Passes'], ['/', 'Public site']]
+    ? [['/admin', t('Dashboard')], ['/admin/registrations', t('Registrations')], ['/admin/payments', t('Payments')], ['/admin/volunteers', t('Volunteers')], ['/admin/check-in-access', t('Check-in Access')], ['/check-in', t('Scan Passes')], ['/', t('Public site')]]
     : [['/', t('Home')], ['/about', t('About')], ['/register', t('Register')]];
-  const navLabel = it.adminPath ? 'Organizer navigation' : t('Main navigation');
-  const mobileNavLabel = it.adminPath ? 'Organizer mobile navigation' : t('Main mobile navigation');
+  const navLabel = it.adminPath ? t('Organizer navigation') : t('Main navigation');
+  const mobileNavLabel = it.adminPath ? t('Organizer mobile navigation') : t('Main mobile navigation');
 %>
   <header class="site-header">
     <div class="site-header__inner">

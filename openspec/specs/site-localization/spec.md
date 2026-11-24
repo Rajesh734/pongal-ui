@@ -48,12 +48,22 @@ All user-facing portal labels, navigation, registration and payment instructions
 - **THEN** the site falls back to English and displays "English is selected because that language is unavailable."
 
 ### Requirement: Scope of translation
-The selected language SHALL apply to the public portal pages (Home, About, Register, registration status and edit, My Registrations, sign-in, sign-up, profile, account messages, error pages and the header). Organizer pages, the interest survey and the check-in scanner remain in English until a later change. Event-configured labels such as volunteer roles MUST be translated from the same catalogs, and any text without a translation MUST fall back to English.
+The selected language SHALL apply to every page: the public portal pages, registration and payment pages, My Registrations, sign-in and profile pages, the interest survey and its confirmation, the check-in scanner, error pages, the header, the browser-side validation and the emails sent to visitors. Event-configured labels such as volunteer roles, survey options and day names MUST be translated from the same catalogs, and any text without a translation MUST fall back to English. Organizer pages, data exports (CSV) and visitor-entered text stay in English or as entered.
 
 #### Scenario: Organizer page while a language is saved
-- **GIVEN** a visitor saved Tamil
-- **WHEN** an organizer opens `/admin`
-- **THEN** the page is displayed in English
+- **GIVEN** a visitor saved Kannada
+- **WHEN** an organizer opens `/admin/payments`
+- **THEN** the page is displayed in English and shows no language selector
+
+#### Scenario: Interest survey validation
+- **GIVEN** a visitor selected Telugu
+- **WHEN** the visitor submits the interest survey without a name
+- **THEN** the error "Please enter your name (at least 2 letters)." is displayed in Telugu
+
+#### Scenario: Email language
+- **GIVEN** a visitor selected Tamil
+- **WHEN** the visitor registers and the registration email is sent
+- **THEN** the email subject and body are written in Tamil
 
 #### Scenario: Missing translation
 - **WHEN** a message has no translation in the selected language

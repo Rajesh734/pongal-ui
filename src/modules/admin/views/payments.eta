@@ -1,38 +1,38 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card admin-home">
-      <p class="admin-banner">Signed in as <strong><%= it.adminEmail %></strong></p>
-      <h1>Payments</h1>
-      <p class="muted">Payments awaiting organizer verification</p>
+      <p class="admin-banner"><%~ it.t('Signed in as {email}', { email: '<strong>' + it.esc(it.adminEmail) + '</strong>' }) %></p>
+      <h1><%= it.t('Payments') %></h1>
+      <p class="muted"><%= it.t('Payments awaiting organizer verification') %></p>
     <% if (it.message) { %>
       <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
       <form method="get" action="/admin/payments" class="admin-filters">
-        <label for="event">Event</label>
+        <label for="event"><%= it.t('Event') %></label>
         <select id="event" name="event">
 <% it.events.forEach((event) => { %>
           <option value="<%= event.slug %>" <%= it.event?.id === event.id ? 'selected' : '' %>><%= event.name %></option>
 <% }) %>
         </select>
-        <button class="button" type="submit">Filter</button>
+        <button class="button" type="submit"><%= it.t('Filter') %></button>
       </form>
 <% if (!it.rows.length) { %>
-      <p class="muted">No payments are waiting for review.</p>
+      <p class="muted"><%= it.t('No payments are waiting for review.') %></p>
 <% } else { %>
       <div class="table-scroll table-stack">
         <table>
-          <thead><tr><th>Household</th><th>Amount due</th><th>Payer</th><th>Zelle reference</th><th>Declared</th><th>Action</th></tr></thead>
+          <thead><tr><th><%= it.t('Household') %></th><th><%= it.t('Amount due') %></th><th><%= it.t('Payer') %></th><th><%= it.t('Zelle reference') %></th><th><%= it.t('Declared') %></th><th><%= it.t('Action') %></th></tr></thead>
           <tbody>
 <% it.rows.forEach((row) => { %>
             <tr>
-              <td data-label="Household"><%= row.registration.contactName %> (<%= row.registration.contactEmail %>)</td>
-              <td data-label="Amount due">$<%= (row.payment?.amountCents ?? row.registration.totalCents) / 100 %></td>
-              <td data-label="Payer"><%= row.payment?.payerName ?? 'Not submitted' %></td>
-              <td data-label="Zelle reference"><%= row.payment?.zelleReference ?? 'Not submitted' %></td>
-              <td data-label="Declared"><%= row.payment?.declaredAt ? row.payment.declaredAt.toISOString() : 'Not submitted' %></td>
-              <td data-label="Action">
+              <td data-label="<%= it.t('Household') %>"><%= row.registration.contactName %> (<%= row.registration.contactEmail %>)</td>
+              <td data-label="<%= it.t('Amount due') %>">$<%= (row.payment?.amountCents ?? row.registration.totalCents) / 100 %></td>
+              <td data-label="<%= it.t('Payer') %>"><%= row.payment?.payerName ?? it.t('Not submitted') %></td>
+              <td data-label="<%= it.t('Zelle reference') %>"><%= row.payment?.zelleReference ?? it.t('Not submitted') %></td>
+              <td data-label="<%= it.t('Declared') %>"><%= row.payment?.declaredAt ? row.payment.declaredAt.toISOString() : it.t('Not submitted') %></td>
+              <td data-label="<%= it.t('Action') %>">
                 <form method="post" action="/admin/payments/<%= row.registration.id %>/confirm?event=<%= it.event.slug %>">
                   <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
-                  <button class="button" type="submit">Confirm payment</button>
+                  <button class="button" type="submit"><%= it.t('Confirm payment') %></button>
                 </form>
               </td>
             </tr>
@@ -41,5 +41,5 @@
         </table>
       </div>
 <% } %>
-      <p class="muted">Confirm a transfer only after checking the receiving Zelle account.</p>
+      <p class="muted"><%= it.t('Confirm a transfer only after checking the receiving Zelle account.') %></p>
     </section>
