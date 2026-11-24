@@ -1,16 +1,18 @@
 <%
+  const t = it.t ?? ((key) => key);
   const navLinks = it.adminPath
     ? [['/admin', 'Dashboard'], ['/admin/registrations', 'Registrations'], ['/admin/payments', 'Payments'], ['/admin/volunteers', 'Volunteers'], ['/admin/check-in-access', 'Check-in Access'], ['/check-in', 'Scan Passes'], ['/', 'Public site']]
-    : [['/', 'Home'], ['/about', 'About'], ['/register', 'Register']];
-  const navLabel = it.adminPath ? 'Organizer' : 'Main';
+    : [['/', t('Home')], ['/about', t('About')], ['/register', t('Register')]];
+  const navLabel = it.adminPath ? 'Organizer navigation' : t('Main navigation');
+  const mobileNavLabel = it.adminPath ? 'Organizer mobile navigation' : t('Main mobile navigation');
 %>
   <header class="site-header">
     <div class="site-header__inner">
       <details class="mobile-menu">
-        <summary aria-label="Open navigation menu">
+        <summary aria-label="<%= t('Open navigation menu') %>">
           <span class="menu-icon" aria-hidden="true"><span></span><span></span><span></span></span>
         </summary>
-        <nav class="mobile-menu__panel" aria-label="<%= navLabel %> mobile navigation">
+        <nav class="mobile-menu__panel" aria-label="<%= mobileNavLabel %>">
 <% navLinks.forEach(([href, label]) => { %>
           <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
 <% }) %>
@@ -29,27 +31,27 @@
   <% } %>
       </div>
       <details class="account-menu">
-        <summary aria-label="Account menu"><svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.5"/><path d="M3 21c0-4.6 4-7.5 9-7.5s9 2.9 9 7.5z"/></svg></summary>
+        <summary aria-label="<%= t('Account menu') %>"><svg class="account-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="7.5" r="4.5"/><path d="M3 21c0-4.6 4-7.5 9-7.5s9 2.9 9 7.5z"/></svg></summary>
         <div class="account-menu__panel">
 <% if (it.siteAccount) { %>
           <p class="account-menu__name"><%= it.siteAccount.name %></p>
-          <a href="/account/profile">Profile</a>
-          <a href="/account/registrations">My Registrations</a>
+          <a href="/account/profile"><%= t('Profile') %></a>
+          <a href="/account/registrations"><%= t('My Registrations') %></a>
 <% if (it.canCheckIn) { %>
-          <a href="/check-in">Scan Passes</a>
+          <a href="/check-in"><%= t('Scan Passes') %></a>
 <% } %>
           <form method="post" action="/api/auth/logout">
             <input type="hidden" name="_csrf" value="<%= it.navCsrfToken ?? '' %>">
-            <button type="submit">Log out</button>
+            <button type="submit"><%= t('Log out') %></button>
           </form>
 <% } else { %>
-          <a href="/login">Sign in</a>
-          <a href="/signup">Sign up</a>
+          <a href="/login"><%= t('Sign in') %></a>
+          <a href="/signup"><%= t('Sign up') %></a>
 <% } %>
         </div>
       </details>
     </div>
-    <nav class="site-nav site-nav--desktop" aria-label="<%= navLabel %> navigation">
+    <nav class="site-nav site-nav--desktop" aria-label="<%= navLabel %>">
 <% navLinks.forEach(([href, label]) => { %>
         <a href="<%= href %>"<%~ it.adminPath === href ? ' aria-current="page"' : '' %>><%= label %></a>
 <% }) %>

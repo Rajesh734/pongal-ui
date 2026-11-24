@@ -46,3 +46,15 @@ All user-facing portal labels, navigation, registration and payment instructions
 #### Scenario: Unsupported language preference
 - **WHEN** a visitor requests an unsupported language code
 - **THEN** the site falls back to English and displays "English is selected because that language is unavailable."
+
+### Requirement: Scope of translation
+The selected language SHALL apply to the public portal pages (Home, About, Register, registration status and edit, My Registrations, sign-in, sign-up, profile, account messages, error pages and the header). Organizer pages, the interest survey and the check-in scanner remain in English until a later change. Event-configured labels such as volunteer roles MUST be translated from the same catalogs, and any text without a translation MUST fall back to English.
+
+#### Scenario: Organizer page while a language is saved
+- **GIVEN** a visitor saved Tamil
+- **WHEN** an organizer opens `/admin`
+- **THEN** the page is displayed in English
+
+#### Scenario: Missing translation
+- **WHEN** a message has no translation in the selected language
+- **THEN** its English text is displayed

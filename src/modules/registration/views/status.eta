@@ -1,62 +1,62 @@
 <% layout('../../survey/views/layout', { title: it.title }) %>
     <section class="card">
       <h1><%= it.title %></h1>
-      <p class="notice">Your registration is saved. Payment is pending.</p>
-      <h2>Household</h2>
+      <p class="notice"><%= it.t('Your registration is saved. Payment is pending.') %></p>
+      <h2><%= it.t('Household') %></h2>
       <p><%= it.household.name %> - <%= it.household.email %></p>
-      <h2>Attendees</h2>
+      <h2><%= it.t('Attendees') %></h2>
       <ul>
 <% it.attendees.forEach((attendee) => { %>
-        <li><%= attendee.name %> - <%= attendee.ageBand === '11_plus' ? 'Age 11+' : attendee.ageBand === '5_to_10' ? 'Age 5-10' : 'Under 5' %></li>
+        <li><%= attendee.name %> - <%= attendee.ageBand === '11_plus' ? it.t('Age 11+') : attendee.ageBand === '5_to_10' ? it.t('Age 5-10') : it.t('Under 5') %></li>
 <% }) %>
       </ul>
     <% if (it.performances.length) { %>
-      <h2>Cultural performances</h2>
+      <h2><%= it.t('Cultural performances') %></h2>
     <% it.performances.forEach((performance) => { %>
       <article>
         <h3><%= performance.title %></h3>
-        <p><%= performance.participantNames %> - <%= performance.participantCount %> performers, <%= performance.durationMinutes %> minutes</p>
+        <p><%= performance.participantNames %> - <%= it.t('{count} performers, {minutes} minutes', { count: performance.participantCount, minutes: performance.durationMinutes }) %></p>
         <p><%= performance.compereIntroduction %></p>
       </article>
     <% }) %>
     <% } %>
-      <p><strong>Total due: <%= it.amount %></strong></p>
+      <p><strong><%= it.t('Total due: {amount}', { amount: it.amount }) %></strong></p>
     <% if (it.payment.declaredAt && it.payment.status !== 'confirmed') { %>
-      <p>You marked your Zelle payment as sent to <strong><%= it.zellePhone %></strong> with family reference <strong><%= it.reference %></strong>. Do not send it again.</p>
+      <p><%~ it.t('You marked your Zelle payment as sent to {phone} with family reference {reference}. Do not send it again.', { phone: '<strong>' + it.esc(it.zellePhone) + '</strong>', reference: '<strong>' + it.esc(it.reference) + '</strong>' }) %></p>
     <% } else if (it.payment.status !== 'confirmed') { %>
-      <p>To pay now, send your Zelle payment to <strong><%= it.zellePhone %></strong>. Include family reference <strong><%= it.reference %></strong> in the payment memo.</p>
+      <p><%~ it.t('To pay now, send your Zelle payment to {phone}. Include family reference {reference} in the payment memo.', { phone: '<strong>' + it.esc(it.zellePhone) + '</strong>', reference: '<strong>' + it.esc(it.reference) + '</strong>' }) %></p>
     <% } %>
     <% if (it.message) { %>
-      <p class="notice" role="status"><%= it.message %></p>
+      <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
-      <p>Registration status: <%= it.registration.status === 'confirmed' ? 'Confirmed' : 'Payment pending' %></p>
+      <p><%= it.t('Registration status: {status}', { status: it.registration.status === 'confirmed' ? it.t('Confirmed') : it.t('Payment pending') }) %></p>
     <% if (it.payment.status === 'confirmed') { %>
-      <p>Payment confirmed. Your Pongal entry pass is ready.</p>
+      <p><%= it.t('Payment confirmed. Your Pongal entry pass is ready.') %></p>
       <% if (it.qrCodeDataUrl) { %>
       <figure class="entry-pass">
-        <img src="<%= it.qrCodeDataUrl %>" alt="QR entry pass for <%= it.household.name %>" width="240" height="240">
-        <figcaption>Show this pass at event check-in.</figcaption>
+        <img src="<%= it.qrCodeDataUrl %>" alt="<%= it.t('QR entry pass for {name}', { name: it.household.name }) %>" width="240" height="240">
+        <figcaption><%= it.t('Show this pass at event check-in.') %></figcaption>
       </figure>
       <% } %>
     <% } else if (it.payment.declaredAt) { %>
-      <p>Payment marked as sent. Do not pay again. Your registration status and QR code will be completed after an organizer confirms the payment.</p>
-      <p><a href="/register/edit/<%= it.requestToken %>">Edit registration</a></p>
+      <p><%= it.t('Payment marked as sent. Do not pay again. Your registration status and QR code will be completed after an organizer confirms the payment.') %></p>
+      <p><a href="/register/edit/<%= it.requestToken %>"><%= it.t('Edit registration') %></a></p>
     <% } else { %>
-      <p><a href="/register/edit/<%= it.requestToken %>">Edit registration</a></p>
+      <p><a href="/register/edit/<%= it.requestToken %>"><%= it.t('Edit registration') %></a></p>
       <form method="post" action="/register/access/<%= it.requestToken %>/payment" data-validate-on-blur novalidate>
         <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
         <fieldset class="field">
-          <label for="payerName">Name shown on the Zelle payment</label>
+          <label for="payerName"><%= it.t('Name shown on the Zelle payment') %></label>
           <input id="payerName" name="payerName" required minlength="2" maxlength="150">
         </fieldset>
         <fieldset class="field">
-          <label for="zelleReference">Zelle confirmation or payment reference</label>
+          <label for="zelleReference"><%= it.t('Zelle confirmation or payment reference') %></label>
           <input id="zelleReference" name="zelleReference" required maxlength="100">
         </fieldset>
-        <label class="choice consent"><input id="paymentSent" type="checkbox" name="paymentSent" value="yes" required> <span>I sent this payment</span></label>
-        <button class="button primary" type="submit">Submit payment details</button>
+        <label class="choice consent"><input id="paymentSent" type="checkbox" name="paymentSent" value="yes" required> <span><%= it.t('I sent this payment') %></span></label>
+        <button class="button primary" type="submit"><%= it.t('Submit payment details') %></button>
       </form>
-      <p><a class="button" href="/register/access/<%= it.requestToken %>?later=1">Save registration and pay later</a></p>
-      <p>Your entry pass will be available after payment is confirmed.</p>
+      <p><a class="button" href="/register/access/<%= it.requestToken %>?later=1"><%= it.t('Save registration and pay later') %></a></p>
+      <p><%= it.t('Your entry pass will be available after payment is confirmed.') %></p>
     <% } %>
     </section>

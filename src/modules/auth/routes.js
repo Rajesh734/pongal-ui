@@ -51,7 +51,7 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
   });
 
   const renderMessage = (reply, title, message, status = 200) =>
-    reply.code(status).view(`${VIEWS}/message.eta`, { title, message });
+    reply.code(status).view(`${VIEWS}/message.eta`, { title: reply.request.t(title), message: reply.request.t(message) });
 
   app.addHook('preValidation', async (request, reply) => {
     if (request.method !== 'POST') return;
@@ -68,9 +68,9 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
   });
 
   app.get('/signup', async (request, reply) => {
-    const message = request.query.sent === '1' ? 'Check your email to verify your account.' : request.query.error ?? null;
+    const message = request.query.sent === '1' ? request.t('Check your email to verify your account.') : request.query.error ?? null;
     return reply.view(`${VIEWS}/signup.eta`, {
-      title: 'Sign up',
+      title: request.t('Sign up'),
       message,
       csrfToken: issueCsrfToken(request, reply, config),
       googleClientId: config.GOOGLE_CLIENT_ID ?? null,
@@ -80,8 +80,8 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
 
   app.get('/login', async (request, reply) =>
     reply.view(`${VIEWS}/login.eta`, {
-      title: 'Sign in',
-      message: request.query.message ?? null,
+      title: request.t('Sign in'),
+      message: request.query.message ? request.t(request.query.message) : null,
       csrfToken: issueCsrfToken(request, reply, config),
       googleClientId: config.GOOGLE_CLIENT_ID ?? null,
       googleLoginUri,
@@ -177,9 +177,9 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
       return reply.redirect(`/login?message=${encodeURIComponent('Sign in to view your household profile.')}`, 303);
     }
     return reply.view(`${VIEWS}/profile.eta`, {
-      title: 'Household profile',
+      title: request.t('Household profile'),
       household: request.householdAccount.household,
-      message: request.query.saved === '1' ? 'Profile updated.' : null,
+      message: request.query.saved === '1' ? request.t('Profile updated.') : null,
       csrfToken: issueCsrfToken(request, reply, config),
     });
   });
@@ -199,9 +199,9 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
     } catch (error) {
       if (error instanceof HouseholdProfileValidationError) {
         return reply.code(400).view(`${VIEWS}/profile.eta`, {
-          title: 'Household profile',
+          title: request.t('Household profile'),
           household: { ...request.householdAccount.household, ...body },
-          message: error.message,
+          message: request.t(error.message),
           csrfToken: body._csrf,
         });
       }

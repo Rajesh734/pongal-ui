@@ -8,19 +8,19 @@
       <div id="g_id_onload" data-client_id="<%= it.googleClientId %>" data-login_uri="<%= it.googleLoginUri %>" data-auto_prompt="false"></div>
       <div class="g_id_signin" data-type="standard" data-size="large" data-width="320" data-text="continue_with" data-shape="rectangular"></div>
       <script src="https://accounts.google.com/gsi/client" async defer></script>
-      <p class="muted">Or sign in with email</p>
+      <p class="muted"><%= it.t('Or sign in with email') %></p>
 <% } %>
       <form method="post" action="/api/auth/login" data-validate-on-blur novalidate>
         <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
         <fieldset class="field">
-          <label for="email">Email</label>
+          <label for="email"><%= it.t('Email') %></label>
           <input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
         </fieldset>
         <fieldset class="field">
-          <label for="password">Password</label>
+          <label for="password"><%= it.t('Password') %></label>
           <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256">
         </fieldset>
-        <button class="button primary" type="submit">Log in</button>
+        <button class="button primary" type="submit"><%= it.t('Log in') %></button>
       </form>
-      <p>New to the portal? <a href="/signup">Sign up</a></p>
+      <p><%= it.t('New to the portal?') %> <a href="/signup"><%= it.t('Sign up') %></a></p>
     </section>

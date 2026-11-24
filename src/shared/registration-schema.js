@@ -171,7 +171,16 @@ export function buildRegistrationSchema(registrationConfig) {
     });
 }
 
-export function validateRegistration(schema, raw) {
+const DURATION_LIMIT = /^The maximum performance time is (\d+) minutes for a solo, (\d+) minutes for 2-4 performers, or (\d+) minutes for 5 or more performers\.$/;
+
+function localize(t, message) {
+  const limits = DURATION_LIMIT.exec(message);
+  return limits
+    ? t('The maximum performance time is {solo} minutes for a solo, {small} minutes for 2-4 performers, or {large} minutes for 5 or more performers.', { solo: limits[1], small: limits[2], large: limits[3] })
+    : t(message);
+}
+
+export function validateRegistration(schema, raw, t = (message) => message) {
   const result = schema.safeParse(normalizeRegistrationInput(raw));
   if (result.success) return { ok: true, data: result.data };
   const errors = {};
@@ -191,5 +200,6 @@ export function validateRegistration(schema, raw) {
     errors.whatsappE164 = 'Enter a valid calling code for the WhatsApp number.';
   }
   if (normalized.whatsappSameAsMobile) delete errors.whatsappE164;
+  for (const key of Object.keys(errors)) errors[key] = localize(t, errors[key]);
   return { ok: false, errors };
 }

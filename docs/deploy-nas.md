@@ -255,6 +255,27 @@ In Cloudflare Zero Trust > Networks > Tunnels > (the `cloudflare-pranphoto` tunn
 | non-prod hostname | `HTTP` `localhost:3101` |
 | production hostname | `HTTP` `localhost:3100` |
 
+### Cloudflare Access for `/admin`
+
+Organizer pages sit behind Cloudflare Access. The app also verifies the Access token itself, so a wrong Access policy still cannot expose `/admin`. Do this once per environment hostname.
+
+1. Zero Trust > Settings > Authentication: keep **One-time PIN**; add **Google** if organizers prefer it.
+2. Zero Trust > Access > Applications > Add an application > **Self-hosted**: domain = the environment hostname, path = `admin` (covers `/admin*`), session duration **24 hours**.
+3. Add a policy named `Organizers`: action **Allow**, include **Emails** = the organizer list.
+4. Copy the application's **AUD tag** (Application > Overview) and your **team domain** (Settings > Custom Pages, `<team>.cloudflareaccess.com`).
+5. In that environment's `.env` set `CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com` and `CF_ACCESS_AUD=<AUD tag>`, then re-run **Deploy** or `docker compose up -d`.
+6. Ask each organizer to turn on 2-Step Verification for the email they use to sign in.
+
+Verify both layers:
+
+```sh
+docker logs community-site-prod 2>&1 | grep -i "admin pages are disabled"   # no output
+# From a private browser window: https://<hostname>/admin asks for an email; an unlisted email gets no code; a listed organizer sees "Signed in as <email>"
+docker compose exec community-site wget -S -O- http://localhost:3000/admin   # 403 "You don't have access to this page."
+```
+
+To lock out an organizer, remove the email from the policy and revoke the session in Zero Trust > Users. To switch admin off, unset the two settings and redeploy: `/admin` then returns 403 while public pages keep working.
+
 ### First deploy and checks
 
 Push to `main` (or run **Deploy** by hand for `non-prod` with the `sha-` tag from the Build summary). Then:

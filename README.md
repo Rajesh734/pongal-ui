@@ -2,11 +2,11 @@
 
 Community website for our yearly celebrations. The first app is the Pongal 2027 interest survey; event registration and other small community apps follow. It runs on a Synology NAS in Docker behind Cloudflare Tunnel and keeps data permanently for year-over-year history.
 
-Stack: Node.js 20, Fastify 5, Eta server-rendered pages, Drizzle ORM on PGlite (embedded Postgres) or PostgreSQL, Zod, Vitest.
+Stack: Node.js 26, Fastify 5, Eta server-rendered pages, Drizzle ORM on PGlite (embedded Postgres) or PostgreSQL, Zod, Vitest.
 
 ## Run locally
 
-Requires Node.js 20 (`nvm use`).
+Requires Node.js 26 (`nvm use`).
 
 ```sh
 npm ci

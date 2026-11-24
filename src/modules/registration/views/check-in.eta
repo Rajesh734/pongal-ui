@@ -3,7 +3,7 @@
       <h1><%= it.title %></h1>
       <p><%= it.event.name %></p>
 <% if (it.message) { %>
-      <p class="notice" role="status"><%= it.message %></p>
+      <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
 <% } %>
       <section class="check-in-scanner" aria-label="QR scanner">
         <video id="check-in-camera" autoplay muted playsinline hidden></video>

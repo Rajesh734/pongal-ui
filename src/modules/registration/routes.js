@@ -70,7 +70,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     const mobile = splitPhoneE164(household?.mobileE164);
     const whatsapp = splitPhoneE164(household?.whatsappE164);
     return reply.view(`${VIEWS}/form.eta`, {
-      title: 'Register for Pongal 2027',
+      title: request.t('Register for {event}', { event: event.name }),
       event,
       values: {
         contactName: household?.name ?? '',
@@ -104,10 +104,10 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     const schema = buildRegistrationSchema(event.configSnapshot.registration);
     const values = normalizeRegistrationInput(request.body);
     const prices = event.configSnapshot.registration.prices_cents;
-    const result = validateRegistration(schema, request.body);
+    const result = validateRegistration(schema, request.body, (key, vars) => request.t(key, vars));
     if (!result.ok) {
       return reply.code(400).view(`${VIEWS}/form.eta`, {
-        title: 'Register for Pongal 2027',
+        title: request.t('Register for {event}', { event: event.name }),
         event,
         values,
         prices,
@@ -115,7 +115,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         ageBandSummary: summarizeAgeBands(values.attendees, prices),
         errors: result.errors,
         csrfToken: request.body?._csrf,
-        message: 'Please fix the highlighted details below.',
+        message: request.t('Please fix the highlighted details below.'),
         roles: event.configSnapshot.registration.volunteer_roles,
         phoneCountries: PHONE_COUNTRIES,
         formAction: '/register',
@@ -137,7 +137,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     } catch (error) {
       if (error instanceof RegistrationConflictError || error instanceof RegistrationOwnershipError) {
         return reply.code(409).view(`${VIEWS}/form.eta`, {
-          title: 'Registration needs attention',
+          title: request.t('Registration needs attention'),
           event,
           values,
           prices,
@@ -146,8 +146,8 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
           errors: {},
           csrfToken: request.body?._csrf,
           message: error instanceof RegistrationOwnershipError
-            ? 'Use the email address linked to your household account.'
-            : error.message,
+            ? request.t('Use the email address linked to your household account.')
+            : request.t(error.message),
           roles: event.configSnapshot.registration.volunteer_roles,
           phoneCountries: PHONE_COUNTRIES,
           formAction: '/register',
@@ -170,7 +170,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       ...row,
       qrCodeDataUrl: row.entryPass ? await QRCode.toDataURL(row.entryPass, { errorCorrectionLevel: 'M', margin: 2, scale: 6 }) : null,
     })));
-    return reply.view(`${VIEWS}/account-registrations.eta`, { title: 'My Registrations', rows });
+    return reply.view(`${VIEWS}/account-registrations.eta`, { title: request.t('My Registrations'), rows });
   });
 
   async function renderAccessStatus(request, reply, token, result, message = null, status = 200) {
@@ -179,7 +179,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       ? await QRCode.toDataURL(result.entryPass, { errorCorrectionLevel: 'M', margin: 2, scale: 6 })
       : null;
     return reply.code(status).view(`${VIEWS}/status.eta`, {
-      title: `${event.name} registration`,
+      title: request.t('{event} registration', { event: event.name }),
       requestToken: token,
       event,
       registration: result.registration,
@@ -192,7 +192,8 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       reference: result.registration.id.slice(0, 8).toUpperCase(),
       zellePhone: event.configSnapshot.registration.zelle_phone,
       csrfToken: issueCsrfToken(request, reply, config),
-      message,
+      message: message ? request.t(message) : message,
+      messageIsError: status >= 400,
     });
   }
 
@@ -219,7 +220,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     const mobile = splitPhoneE164(result.registration.contactMobileE164);
     const whatsapp = splitPhoneE164(result.registration.contactWhatsappE164);
     return reply.view(`${VIEWS}/form.eta`, {
-      title: 'Edit your Pongal registration',
+      title: request.t('Edit your Pongal registration'),
       event,
       values: {
         contactName: result.registration.contactName,
@@ -257,10 +258,10 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     }
     const schema = buildRegistrationSchema(event.configSnapshot.registration);
     const values = normalizeRegistrationInput(request.body);
-    const resultData = validateRegistration(schema, request.body);
+    const resultData = validateRegistration(schema, request.body, (key, vars) => request.t(key, vars));
     if (!resultData.ok) {
       return reply.code(400).view(`${VIEWS}/form.eta`, {
-        title: 'Edit your Pongal registration',
+        title: request.t('Edit your Pongal registration'),
         event,
         values,
         prices: event.configSnapshot.registration.prices_cents,
@@ -268,7 +269,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         ageBandSummary: summarizeAgeBands(values.attendees, event.configSnapshot.registration.prices_cents),
         errors: resultData.errors,
         csrfToken: request.body?._csrf,
-        message: 'Please fix the highlighted details below.',
+        message: request.t('Please fix the highlighted details below.'),
         roles: event.configSnapshot.registration.volunteer_roles,
         phoneCountries: PHONE_COUNTRIES,
         formAction: `/register/edit/${request.params.token}`,
@@ -316,6 +317,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       event,
       result,
       message,
+      messageIsError: statusCode >= 400,
       csrfToken: issueCsrfToken(request, reply, config),
       errorMessages: {
         invalid: 'Pass not recognized. Check the QR code or ask an organizer for help.',

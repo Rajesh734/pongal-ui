@@ -71,6 +71,55 @@ function csrfForm(page, payload, extraCookie = '') {
 }
 
 describe('registration routes', () => {
+  it('shows the registration page in the selected language without translating what the visitor typed', async () => {
+    await setup();
+    const form = await app.inject('/register');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/register',
+      ...csrfForm(form, registrationPayload({
+        performances: [{ title: 'Kolattam', participantNames: 'பிரியா and friends', participantCount: 2, durationMinutes: 5, compereIntroduction: 'ஒரு பாரம்பரிய நடனம் - a traditional dance.' }],
+      })),
+    });
+    expect(created.statusCode).toBe(303);
+
+    const ta = await app.inject({ url: created.headers.location, headers: { cookie: 'pongal_lang=ta' } });
+    expect(ta.body).toContain('<html lang="ta">');
+    expect(ta.body).toContain('உங்கள் பதிவு சேமிக்கப்பட்டது. பணம் நிலுவையில் உள்ளது.');
+    expect(ta.body).toContain('2 கலைஞர்கள், 5 நிமிடங்கள்');
+    expect(ta.body).toContain('Kolattam');
+    expect(ta.body).toContain('ஒரு பாரம்பரிய நடனம் - a traditional dance.');
+    expect(ta.body).toContain('+16039700000');
+
+    const en = await app.inject(created.headers.location);
+    expect(en.body).toContain('Your registration is saved. Payment is pending.');
+    expect(en.body).toContain('ஒரு பாரம்பரிய நடனம் - a traditional dance.');
+  });
+
+  it('shows a duplicate registration in the selected language', async () => {
+    await setup();
+    const submit = async () => {
+      const page = await app.inject({ url: '/register', headers: { cookie: 'pongal_lang=kn' } });
+      return app.inject({ method: 'POST', url: '/register', ...csrfForm(page, registrationPayload(), 'pongal_lang=kn') });
+    };
+    expect((await submit()).statusCode).toBe(303);
+    const duplicate = await submit();
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.body).toMatch(/role="alert">ಈ ಕುಟುಂಬ ಮತ್ತು ಕಾರ್ಯಕ್ರಮಕ್ಕೆ ಈಗಾಗಲೇ ಸಕ್ರಿಯ ನೋಂದಣಿ ಇದೆ\./);
+  });
+
+  it('shows a duplicate registration as a highlighted alert', async () => {
+    await setup();
+    const submit = async () => {
+      const form = await app.inject('/register');
+      return app.inject({ method: 'POST', url: '/register', ...csrfForm(form, registrationPayload()) });
+    };
+    expect((await submit()).statusCode).toBe(303);
+    const duplicate = await submit();
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.body).toMatch(/class="notice" role="alert">An active registration already exists for this household and event\./);
+  });
+
   it('Guest registration saves pending payment and sends a secure access link', async () => {
     await setup();
     const form = await app.inject('/register');

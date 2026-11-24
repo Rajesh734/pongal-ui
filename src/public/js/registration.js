@@ -1,4 +1,7 @@
 import { calculateFamilyTotal, summarizeAgeBands } from '/shared/registration-pricing.js';
+import { pageTranslator } from '/shared/i18n/browser.js';
+
+const t = await pageTranslator();
 
 const list = document.querySelector('#attendee-list');
 const template = document.querySelector('#attendee-template');
@@ -27,7 +30,7 @@ for (const select of document.querySelectorAll('select[data-short-label]')) {
   for (const option of select.options) option.dataset.full = option.textContent;
   const shorten = () => {
     for (const option of select.options) {
-      option.textContent = option.selected ? (option.value.startsWith('+') ? option.value : 'Other') : option.dataset.full;
+      option.textContent = option.selected ? (option.value.startsWith('+') ? option.value : t('Other')) : option.dataset.full;
     }
   };
   const expand = () => {
@@ -77,7 +80,7 @@ if (list && template && addButton) {
   const updateRows = () => {
     const rows = [...list.querySelectorAll('.attendee-row')];
     rows.forEach((row, position) => {
-      row.querySelector('legend').textContent = `Attendee ${position + 1}`;
+      row.querySelector('legend').textContent = t('Attendee {n}', { n: position + 1 });
       const removeButton = row.querySelector('[data-remove-attendee]');
       removeButton.disabled = position === 0;
       removeButton.hidden = position === 0;
@@ -95,7 +98,7 @@ if (list && template && addButton) {
       row.querySelectorAll('input[name^="attendeeRoles_"]').forEach((input) => {
         input.name = `attendeeRoles_${position}`;
       });
-      row.querySelector('legend').textContent = position === 0 ? 'Primary contact and attendee 1' : `Attendee ${position + 1}`;
+      row.querySelector('legend').textContent = position === 0 ? t('Primary contact and attendee 1') : t('Attendee {n}', { n: position + 1 });
       updateVolunteerEligibility(row);
     });
     updateFamilySummary();
@@ -157,18 +160,18 @@ if (performanceList && performanceTemplate && addPerformanceButton) {
     const hint = row.querySelector('[data-duration-hint]');
     if (!count) {
       duration.max = limitLarge;
-      hint.textContent = 'Enter performers to see the time limit.';
+      hint.textContent = t('Enter performers to see the time limit.');
       return;
     }
-    const [limit, group] = count === 1 ? [limitSolo, 'a solo'] : count <= 4 ? [limitSmall, '2-4 performers'] : [limitLarge, '5 or more performers'];
+    const [limit, group] = count === 1 ? [limitSolo, t('a solo')] : count <= 4 ? [limitSmall, t('2-4 performers')] : [limitLarge, t('5 or more performers')];
     duration.max = limit;
-    hint.textContent = `Up to ${limit} minutes for ${group}.`;
+    hint.textContent = t('Up to {limit} minutes for {group}.', { limit, group });
   };
 
   const updatePerformances = () => {
     const rows = [...performanceList.querySelectorAll('.performance-row')];
     rows.forEach((row, position) => {
-      row.querySelector('legend').textContent = `Performance ${position + 1}`;
+      row.querySelector('legend').textContent = t('Performance {n}', { n: position + 1 });
       for (const field of ['performanceTitle', 'performanceParticipants', 'performanceParticipantCount', 'performanceDuration', 'performanceIntroduction']) {
         const input = row.querySelector(`[name="${field}"]`);
         input.id = `${field}${position}`;

@@ -15,7 +15,7 @@ Lets signed-in organizers see how many families have responded and download an e
 - **THEN** the row for Pongal 2027 shows "Open", "2 families", "7 people" and a "Download CSV" link to `/admin/events/pongal-2027/responses.csv`
 
 ### Requirement: CSV download of active responses
-`GET /admin/events/<event-slug>/responses.csv` SHALL return one row per active response for that event, oldest first, after a header row, as UTF-8 with a byte-order mark, CRLF line endings, RFC 4180 quoting, `Content-Type: text/csv; charset=utf-8`, `Cache-Control: no-store`, and a download filename `<event-slug>-responses-<YYYY-MM-DD-HHmm>.csv` in event time.
+`GET /admin/events/<event-slug>/responses.csv` SHALL return one row per active response for that event, oldest first, after a header row, as UTF-8 with a byte-order mark, CRLF line endings, RFC 4180 quoting with every cell double-quoted, `Content-Type: text/csv; charset=utf-8`, `Cache-Control: no-store`, and a download filename `<event-slug>-responses-<YYYY-MM-DD-HHmm>.csv` in event time.
 
 #### Scenario: File name and headers
 - **WHEN** an organizer downloads Pongal 2027 responses at 8:15 AM ET on Nov 21, 2026
@@ -45,7 +45,7 @@ The header row SHALL be, in order: "Submitted (ET)", "Last updated (ET)", "Name"
 #### Scenario: Pongal 2027 row
 - **GIVEN** Priya submitted at 9:02 PM ET on Nov 20, 2026 with mobile `+16175550123`, Saturday = Definitely, Sunday = Maybe, 2 adults & kids 11+, 1 kid 5-10, 1 kid under 5, food Veg, roles Food Serving and Cleanup, cultural Yes, contribution $20, no comments
 - **WHEN** the CSV is downloaded
-- **THEN** her row reads `2026-11-20 21:02,2026-11-20 21:02,Priya Raman,priya@example.com,617-555-0123,Definitely,Maybe,2,1,1,4,4.00,1.60,Veg,Food Serving; Cleanup,Yes,$20,`
+- **THEN** her row's cells are (shown unquoted) `2026-11-20 21:02,2026-11-20 21:02,Priya Raman,priya@example.com,617-555-0123,Definitely,Maybe,2,1,1,4,4.00,1.60,Veg,Food Serving; Cleanup,Yes,$20,`
 
 #### Scenario: Day not selected
 - **WHEN** a family selected only Sunday
@@ -59,7 +59,7 @@ For each event day, the weighted value SHALL be total people multiplied by the c
 - **THEN** "Weighted Saturday, Jan 16" is `3.00`
 
 ### Requirement: Protection against spreadsheet formulas
-Any cell value that starts with `=`, `+`, `-`, `@`, a tab or a carriage return MUST be prefixed with a single quote `'` so spreadsheet programs treat it as text.
+Any cell value that starts with `=`, `+`, `-`, `@`, a tab or a carriage return MUST be prefixed with a single quote `'` so spreadsheet programs treat it as text. Phone numbers are exempt because they are formatted as `617-555-0123` (US) or kept as a validated `+<digits>` number.
 
 #### Scenario: Formula in comments
 - **GIVEN** a response with comments `=HYPERLINK("http://evil.example","Click")`

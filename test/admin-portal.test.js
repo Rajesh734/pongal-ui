@@ -151,7 +151,8 @@ describe('organizer portal reports', () => {
     expect(response.body).toContain("'=Household");
     expect(response.body).toContain("'=2+2");
     expect(response.body).toContain("'=SUM(A1:A2)");
-    expect(response.body).toContain("'+16031234567");
+    expect(response.body).toContain('"603-123-4567"');
+    expect(response.body).not.toContain('Registration total');
     expect(response.body).toContain('"Age group"');
     expect(response.body).toContain('"11+"');
     expect(response.body).not.toContain('11_plus');
@@ -233,5 +234,46 @@ describe('organizer portal reports', () => {
     expect(revoke.statusCode).toBe(303);
     const [revoked] = await database.db.select().from(checkInPermissions);
     expect(revoked.revokedAt).toBeInstanceOf(Date);
+  });
+
+  it('groups the registration CSV by registration like the registrations page', async () => {
+    const { created } = await setup();
+    const response = await app.inject({ url: '/admin/registrations.csv?event=pongal-2027', headers: adminHeaders() });
+    const [, first, second] = response.body.split('\r\n');
+    const prefix = `"pongal-2027","${created.registration.id}"`;
+    expect(first.startsWith(`${prefix},"'=Household","priya@example.com","603-123-4567"`)).toBe(true);
+    expect(second.startsWith(`${prefix},"","","","","Nila"`)).toBe(true);
+    expect(first).toContain('"payment_pending"');
+    expect(second).not.toContain('payment_pending');
+    expect(second).not.toContain('Family Dance');
+  });
+
+  it('grants check-in access from the volunteers page and shows the failure as an alert', async () => {
+    await setup();
+    const page = await app.inject({ url: '/admin/volunteers?event=pongal-2027', headers: adminHeaders() });
+    expect(page.body).toContain('Grant check-in');
+
+    const unverified = await app.inject({
+      method: 'POST',
+      url: '/admin/check-in-access/grant?event=pongal-2027&from=volunteers',
+      ...adminForm(page, { email: 'priya@example.com' }),
+    });
+    expect(unverified.statusCode).toBe(400);
+    expect(unverified.body).toContain('<h1>Volunteers</h1>');
+    expect(unverified.body).toMatch(/class="notice" role="alert">This person needs a verified household account/);
+
+    await createOrLinkGoogleHousehold(database.db, { email: 'priya@example.com', name: 'Priya', sub: 'google-sub-volunteers' });
+    const grant = await app.inject({
+      method: 'POST',
+      url: '/admin/check-in-access/grant?event=pongal-2027&from=volunteers',
+      ...adminForm(page, { email: 'priya@example.com' }),
+    });
+    expect(grant.statusCode).toBe(303);
+    expect(grant.headers.location).toBe('/admin/volunteers?event=pongal-2027&granted=1');
+
+    const after = await app.inject({ url: grant.headers.location, headers: adminHeaders() });
+    expect(after.body).toMatch(/class="notice" role="status">Check-in access granted\./);
+    expect(after.body).toContain('Access granted');
+    expect(after.body).not.toContain('Grant check-in</button>');
   });
 });

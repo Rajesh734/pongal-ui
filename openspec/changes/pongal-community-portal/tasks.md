@@ -65,16 +65,16 @@
 
 ## 7. Localization
 
-- [ ] 7.1 Add English, Tamil, Telugu, Kannada, and Malayalam message catalogs; verify every portal page has complete required labels and no runtime translation request.
-- [ ] 7.2 Persist language selection with English as the default; verify preference across Home, Register, About, Profile, and My Registrations and fallback for an unsupported locale.
-- [ ] 7.3 Localize server and browser validation, payment instructions, and status messages; verify validation stays consistent with JavaScript enabled or disabled.
-- [ ] 7.4 Verify attendee names and compere introductions remain unchanged when viewed in another locale and all supported scripts render on desktop and mobile.
+- [x] 7.1 Add English, Tamil, Telugu, Kannada, and Malayalam message catalogs; verify every portal page has complete required labels and no runtime translation request.
+- [x] 7.2 Persist language selection with English as the default; verify preference across Home, Register, About, Profile, and My Registrations and fallback for an unsupported locale.
+- [x] 7.3 Localize server and browser validation, payment instructions, and status messages; verify validation stays consistent with JavaScript enabled or disabled.
+- [ ] 7.4 Verify attendee names and compere introductions remain unchanged when viewed in another locale and all supported scripts render on desktop and mobile. (Names and introductions are covered by tests; still to check: Indic scripts on a real phone and laptop.)
 
 ## 8. Integration and deployment verification
 
 - [x] 8.1 Verify all migrations and core registration/auth tests pass on PGlite; run the full `npm test` suite and resolve regressions.
 - [x] 8.6 Harden deployment diagnostics: accept same-origin `Origin: null` posts, log blocked origins and admin denial reasons, allow the GIS popup via `same-origin-allow-popups`, accept Google redirect-mode callbacks via `g_csrf_token`, and validate Compose in CI with all required placeholders.
-- [ ] 8.2 Configure both NAS app environments for PostgreSQL over `kalanjiyam-net`, with separate databases/roles and secret-file passwords; verify Compose publishes no PostgreSQL port and the app health check passes.
-- [ ] 8.3 Configure Google authorized origins and SMTP in the deployment environment without exposing secrets; verify manual verification, Google sign-in, guest links, and pass delivery end to end.
-- [ ] 8.4 Configure organizer-approved 2027 date, venue, agenda, About copy, and payment recipient; verify the public pages show the approved values.
-- [ ] 8.5 Deploy to non-production and verify guest registration through organizer payment confirmation, QR delivery, registration CSV, volunteer report, and phone check-in; record the smoke-test result.
+- [x] 8.2 Configure both NAS app environments for PostgreSQL over `kalanjiyam-net`, with separate databases/roles and secret-file passwords; verify Compose publishes no PostgreSQL port and the app health check passes.
+- [x] 8.3 Configure Google authorized origins and SMTP in the deployment environment without exposing secrets; verify manual verification, Google sign-in, guest links, and pass delivery end to end.
+- [x] 8.4 Configure organizer-approved 2027 date, venue, agenda, About copy, and payment recipient; verify the public pages show the approved values.
+- [x] 8.5 Deploy to non-production and verify guest registration through organizer payment confirmation, QR delivery, registration CSV, volunteer report, and phone check-in; record the smoke-test result.

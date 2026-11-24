@@ -5,7 +5,7 @@
   "description": "Community website: Pongal 2027 interest survey and future community apps",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "scripts": {
     "start": "node src/server.js",

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="<%= it.locale ?? 'en' %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,17 @@
 </head>
 <body<% if (it.theme) { %> class="theme-<%= it.theme %>"<% } %>>
 <%~ include('./partials/site-header', { site: it.site }) %>
+<% if (!it.adminPath && it.locales) { %>
+  <nav class="lang-bar" aria-label="<%= it.t('Language') %>">
+    <span class="lang-bar__label"><%= it.t('Language') %>:</span>
+<% it.locales.forEach((option) => { %>
+    <a href="?lang=<%= option.code %>" lang="<%= option.code %>" hreflang="<%= option.code %>"<%~ option.code === it.locale ? ' aria-current="true"' : '' %>><%= option.name %></a>
+<% }) %>
+<% if (it.languageNotice) { %>
+    <p class="notice" role="status"><%= it.languageNotice %></p>
+<% } %>
+  </nav>
+<% } %>
 <% if (it.theme === 'pongal') { %>
 <%~ include('./themes/pongal/banner', { eventName: it.eventName, m: it.m }) %>
 <% } %>

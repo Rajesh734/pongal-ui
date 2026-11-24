@@ -47,6 +47,12 @@ export function dateInZone(date, timeZone) {
   return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
 }
 
+/** "YYYY-MM-DD HH:mm" of `date` in `timeZone`. */
+export function timestampInZone(date, timeZone) {
+  const p = zonedParts(date, timeZone);
+  return `${dateInZone(date, timeZone)} ${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+}
+
 /** Formats like "Fri, Nov 20, 8:30 PM ET". */
 export function formatInZone(date, timeZone = DEFAULT_TIMEZONE) {
   const parts = new Intl.DateTimeFormat('en-US', {
