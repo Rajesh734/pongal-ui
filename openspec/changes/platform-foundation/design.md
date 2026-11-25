@@ -4,10 +4,10 @@
 
 See proposal.md for motivation. Constraints that shape the approach:
 
-- Runs on a Synology DS920+ (Celeron J4125, 4 GB RAM) in Docker, reached only through the existing Cloudflare Tunnel container. Only one NAS exists, and PostgreSQL is not ready yet, so production starts on PGlite with a persistent folder.
+- Runs on a Synology DS920+ (Celeron J4125, 4 GB RAM) in Docker, reached only through the existing Cloudflare Tunnel container. Only one NAS exists. **Update (Nov 2026):** PostgreSQL 18 Alpine now runs as a separate stack on the NAS (`/volume1/docker/kalanjiyam`, network `kalanjiyam-net`), so non-production and production use PostgreSQL; PGlite is kept for development and tests. The original plan below (production on PGlite, D9) is superseded where noted.
 - The NAS is reachable for administration only over Tailscale with SSH; another app already deploys to it from GitHub Actions this way, and this change follows that pattern.
 - The repository is public, so workflow logs are world-readable.
-- Real family data is collected from launch, so the PGlite stage is production in practice: it needs a mounted volume and backups.
+- Real family data is collected from launch, so the database is production data from day one: it needs backups (PostgreSQL 18 backup service in production; the PGlite job in D9 only for the embedded driver).
 - Synology has no built-in secret vault; secrets must stay out of the repo and out of `docker inspect`.
 - The tech stack, folder layout and data rules come from `openspec/config.yaml`.
 
@@ -161,12 +161,14 @@ Local times are converted to UTC with the event timezone. Seeding upserts by slu
 Fastify's pino logger with a custom serializer that logs only `reqId`, method, `routeOptions.url` (the route pattern, never the raw URL), status and duration. Request bodies are never logged. Error logs include the error message and stack, not the request body.
 
 ### D9. Nightly PGlite backup inside the app
+**Scope update:** this job now serves only `DB_DRIVER=pglite` (development and the legacy PGlite folder). Production dumps come from the PostgreSQL 18 backup service; see `openspec/specs/platform-quality`.
+
 PGlite allows one process to open the data folder, so the backup runs inside the app: a timer fires at 02:00 event time and calls PGlite's `dumpDataDir()`, writing a gzip tarball to `BACKUP_DIR`, then deletes all but the newest 14. Hyper Backup copies `BACKUP_DIR` (consistent snapshots), not the live data folder.
 - *Hyper Backup of the live `pglite/` folder* - rejected: copying files under an open database can produce an unusable copy.
 - *DSM scheduled `docker exec`* - rejected: needs a second process opening the same data folder.
 
 ### D10. Container and Compose
-- Image: `node:20-alpine`, `npm ci --omit=dev`, runs as `node` (uid 1000), `HEALTHCHECK` calling `/healthz`. Built by CI for `linux/amd64` (the J4125 is x86-64) and published as `ghcr.io/rajesh734/pongal-ui/community-site`.
+- Image: `node:26-alpine` (Node 26 LTS), `npm ci --omit=dev`, runs as `node` (uid 1000), `HEALTHCHECK` calling `/healthz`. Built by CI for `linux/amd64` (the J4125 is x86-64) and published as `ghcr.io/rajesh734/pongal-ui/community-site`.
 - `compose.yaml`: project `name: community-site-${APP_ENV}` (both environment folders are called `community-site`, so without it they would share one Compose project), service `community-site` using `image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}` (no `build:`), `container_name: community-site-${APP_ENV}`, port 3000 **published on the NAS loopback only** (`127.0.0.1:${HOST_PORT}:3000`, `HOST_PORT` from `.env`), because the existing `cloudflared` container (`cloudflare-pranphoto`, also serving Synology Photos) runs in host network mode and reaches services through `localhost`; volumes `./data:/data`; Compose `secrets:` from `./secrets/<name>` files; non-secret settings from `.env`. The same file serves both environments.
 - One folder per environment: `/volume1/platform/docker/{non-prod,prod}/community-site/` owned by the deploy user, holding `compose.yaml`, `.env` (`APP_ENV`, `HOST_PORT`, non-secret settings), `secrets/` (owner 1000, mode 711 so the deploy user can resolve the paths for Compose but not list or read them; files mode 400), `data/` (owner 1000, mode 700) and `.deployed-tag` (the image tag that is running).
 - `HOST_PORT` is `3101` for non-prod and `3100` for production (3000 is used by another app on the NAS). Cloudflare Tunnel public hostnames point to `http://localhost:3101` and `http://localhost:3100`.
@@ -178,7 +180,7 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 
 ### D11. Build workflow: test, then publish the image to GHCR
 `.github/workflows/build.yml` (replaces `ci.yml`) runs on push to any branch, on pull request to `main` and on manual dispatch. Every pushed branch gets an image; only `main` is deployed automatically.
-- `test` job: `actions/setup-node@v4` with Node 20 and npm cache, `npm ci`, `npm test`. Tests use in-memory PGlite, so no database service is needed. Tests start real PGlite (WASM Postgres) instances, which take several seconds on shared GitHub runners, so `vitest.config.js` raises the per-test and per-hook timeout to 30 s.
+- `test` job: `actions/setup-node@v4` with the version in `.nvmrc` (Node 26) and npm cache, `npm ci`, `npm test`. Tests use in-memory PGlite, so no database service is needed. Tests start real PGlite (WASM Postgres) instances, which take several seconds on shared GitHub runners, so `vitest.config.js` raises the per-test and per-hook timeout to 30 s.
 - *Keep Vitest's 5 s default timeout* - rejected: the backup test that dumps a real PGlite data folder timed out in CI while passing locally.
 - *Mock PGlite in the slow tests* - rejected: those tests exist to prove the real driver and migrations work.
 - `build` job (needs `test`, `packages: write`): checks `compose.yaml` with `docker compose config` and that every published port is bound to `127.0.0.1`, then Buildx for `linux/amd64`, tags `sha-<short>`, branch name and `latest` on `main` (from `docker/metadata-action`), GHA layer cache. The built image is loaded locally and must print `1000` for `id -u` before anything is pushed; it is pushed only when the event is not a pull request.

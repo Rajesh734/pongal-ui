@@ -20,7 +20,8 @@ context: |
   Architecture: src/{server.js, config.js, db/, core/, modules/<feature>/{routes,service,repo,schema,messages,views}, shared/, public/}
   config/events/*.yaml defines events (seeded into the DB). Each future app = new modules/<feature>.
 
-  Reference docs: openspec/data-model.md (tables, constraints, ER diagram) and
+  Reference docs: openspec/architecture.md (runtime, request pipeline, security, i18n, assets, build and deploy),
+  openspec/data-model.md (tables, constraints, ER diagram) and
   openspec/route-map.md (every route and its capability). Keep both in sync with the code.
 
   Data rules: never hard-delete respondent data (use deleted_at); every create/update/delete writes
