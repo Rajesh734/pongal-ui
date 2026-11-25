@@ -8,7 +8,7 @@ The repository is empty apart from the OpenSpec plan. The Pongal 2027 Interest S
 
 - **Add** repository basics: `package.json`, `.gitignore`, `.nvmrc`, `README.md` and `Dockerfile`.
 - **Add** a build workflow that runs the tests and pushes the Docker image to GitHub Container Registry (GHCR), and a deploy workflow that reaches the NAS over Tailscale + SSH. Every push to `main` deploys to `non-prod` automatically; `production` is deployed by a manual run with a chosen image tag. A deploy that does not become healthy is rolled back to the previous image.
-- **Add** a Node.js 20 / Fastify 5 skeleton (ES modules, no front-end build step) with security headers, request IDs, PII-free logging, a health endpoint and friendly 404/500 pages.
+- **Add** a Node.js 26 / Fastify 5 skeleton (ES modules, no front-end build step) with security headers, request IDs, PII-free logging, a health endpoint and friendly 404/500 pages.
 - **Add** configuration loading from env vars where each secret can also come from a file (`X_FILE`), so secrets live in Synology-managed Docker Compose secret files and never in the repo. The repo ships only `.env.example` with dummy values and Cloudflare's public Turnstile test keys.
 - **Add** a database layer selected by `DB_DRIVER` (`pglite` now, `postgres` later) with Drizzle migrations that run unchanged on both, plus a nightly PGlite backup.
 - **Add** the shared data model: `households`, `events`, `event_days`, `change_history`, with soft-delete and audit rules.
