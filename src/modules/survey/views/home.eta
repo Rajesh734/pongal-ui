@@ -1,7 +1,27 @@
 <% layout('./layout', { title: it.title }) %>
     <section class="card home-page">
+      <p class="home-eyebrow"><%= it.t('Pongal · Bhogi · Makar Sankranti') %></p>
       <h1><%= it.event.name %></h1>
-      <p><%= it.t('Celebrate Pongal with the Eastcoast Tamil Community.') %></p>
+      <p class="home-tagline"><%= it.t('One harvest, many names, one celebration') %></p>
+      <p><%= it.t('With joy and gratitude, we warmly invite you to celebrate Thai Pongal, the festival of harvest, togetherness and tradition.') %></p>
+      <p><%= it.t('The same golden season is celebrated across India: Thai Pongal in Tamil Nadu, Bhogi and Makar Sankranti in the Telugu states, and Makara Sankranti in Karnataka and Kerala. Whatever you call it, come celebrate with us!') %></p>
       <p><%= it.t('Register once for your household and add the family members who will attend.') %></p>
       <a class="button primary" href="/register"><%= it.t('Register your household') %></a>
+
+      <h2><%= it.t('Event Agenda') %></h2>
+      <div class="event-facts">
+        <div class="event-fact"><span class="event-fact__icon" aria-hidden="true">📅</span><div><span class="event-fact__label"><%= it.t('Date') %></span><strong><%= it.t('Jan 16 - Saturday') %></strong></div></div>
+        <div class="event-fact"><span class="event-fact__icon" aria-hidden="true">📍</span><div><span class="event-fact__label"><%= it.t('Venue') %></span><strong><%= it.t('Venue details coming soon.') %></strong><span class="event-fact__detail"><%= it.t("We'll confirm the location soon and email you the details once it's finalized.") %></span></div></div>
+      </div>
+      <ol class="agenda">
+        <li><span class="agenda__icon" aria-hidden="true">📝</span><div><span class="agenda__time">2:00 – 3:00 PM</span><strong><%= it.t('Registration') %></strong></div></li>
+        <li><span class="agenda__icon" aria-hidden="true">🍪</span><div><span class="agenda__time">2:30 – 3:30 PM</span><strong><%= it.t('Welcome Snacks') %></strong></div></li>
+        <li><span class="agenda__icon" aria-hidden="true">🎭</span><div><span class="agenda__time">3:45 – 6:15 PM</span><strong><%= it.t('Pongal Cultural Events') %></strong><span class="agenda__detail"><%= it.t('Dance · Music · Traditional Performances') %></span></div></li>
+        <li><span class="agenda__icon" aria-hidden="true">🍽️</span><div><span class="agenda__time">6:15 – 7:45 PM</span><strong><%= it.t('Dinner Service') %></strong></div></li>
+      </ol>
+      <p class="muted"><%= it.t('This agenda is tentative. Final timings will be shared with registered households.') %></p>
+
+      <h2><%= it.t('A Celebration of Culture & Community') %></h2>
+      <p><%= it.t('This event brings together families, performers, and volunteers from near and far. Your presence, talent, and time make this celebration truly special. We look forward to sharing a joyful Pongal evening with you and honoring our rich Tamil heritage together.') %></p>
+      <p class="home-signoff"><%= it.t('With warm regards,') %><br><strong>Eastcoast Tamil Community</strong></p>
     </section>

@@ -7,7 +7,14 @@ import { findHouseholdSession } from '../auth/service.js';
 import { PHONE_COUNTRIES, splitPhoneE164 } from '../../shared/phone-countries.js';
 import { calculateFamilyTotal, summarizeAgeBands } from '../../shared/registration-pricing.js';
 import { buildRegistrationSchema, normalizeRegistrationInput, validateRegistration } from '../../shared/registration-schema.js';
-import { CheckInAccessError, hasCheckInPermission, previewCheckIn, recordCheckIn } from './checkin-service.js';
+import {
+  CheckInAccessError,
+  hasCheckInPermission,
+  previewCheckIn,
+  recordCheckIn,
+  recordCheckInByRegistration,
+  searchCheckInCandidates,
+} from './checkin-service.js';
 import {
   createRegistration,
   declarePaymentSent,
@@ -131,7 +138,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       });
       if (mailer?.sendRegistrationAccessEmail && config.APP_BASE_URL) {
         const link = new URL(`/register/access/${created.accessToken}`, config.APP_BASE_URL).toString();
-        await mailer.sendRegistrationAccessEmail({ to: created.household.email, eventName: event.name, link, t: (key, vars) => request.t(key, vars) });
+        await mailer.sendRegistrationAccessEmail({ to: created.household.email, eventName: event.name, name: created.household.name, link, t: (key, vars) => request.t(key, vars) });
       }
       return reply.redirect(`/register/access/${created.accessToken}`, 303);
     } catch (error) {
@@ -311,11 +318,19 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     }
   });
 
-  async function renderCheckIn(request, reply, event, result = null, message = null, statusCode = 200) {
+  async function renderCheckIn(request, reply, event, {
+    result = null,
+    message = null,
+    statusCode = 200,
+    searchQuery = '',
+    searchResults = [],
+  } = {}) {
     return reply.code(statusCode).view(`${VIEWS}/check-in.eta`, {
       title: request.t('Pongal check-in'),
       event,
       result,
+      searchQuery,
+      searchResults,
       message: message ? request.t(message) : message,
       messageIsError: statusCode >= 400,
       csrfToken: issueCsrfToken(request, reply, config),
@@ -334,7 +349,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
     const event = await currentEvent();
     if (!event) return reply.callNotFound();
     const allowed = await hasCheckInPermission(db, event.id, request.registrationAccount.household.id);
-    if (!allowed) return renderCheckIn(request, reply, event, null, "You don't have permission to check in attendees.", 403);
+    if (!allowed) return renderCheckIn(request, reply, event, { message: "You don't have permission to check in attendees.", statusCode: 403 });
     return renderCheckIn(request, reply, event);
   });
 
@@ -348,9 +363,27 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         operatorHouseholdId: request.registrationAccount.household.id,
         token: request.body?.token,
       });
-      return renderCheckIn(request, reply, event, { ...result, token: request.body?.token });
+      return renderCheckIn(request, reply, event, { result: { ...result, token: request.body?.token } });
     } catch (error) {
-      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, null, error.message, 403);
+      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, { message: error.message, statusCode: 403 });
+      throw error;
+    }
+  });
+
+  app.post('/check-in/search', { bodyLimit: 16 * 1024 }, async (request, reply) => {
+    if (!request.registrationAccount) return reply.redirect('/login', 303);
+    const event = await currentEvent();
+    if (!event) return reply.callNotFound();
+    const searchQuery = String(request.body?.query ?? '').trim();
+    try {
+      const searchResults = await searchCheckInCandidates(db, {
+        eventId: event.id,
+        operatorHouseholdId: request.registrationAccount.household.id,
+        query: searchQuery,
+      });
+      return renderCheckIn(request, reply, event, { searchQuery, searchResults });
+    } catch (error) {
+      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, { message: error.message, statusCode: 403 });
       throw error;
     }
   });
@@ -366,9 +399,38 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
         token: request.body?.token,
         now: now(),
       });
-      return renderCheckIn(request, reply, event, result);
+      return renderCheckIn(request, reply, event, { result });
     } catch (error) {
-      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, null, error.message, 403);
+      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, { message: error.message, statusCode: 403 });
+      throw error;
+    }
+  });
+
+  app.post('/check-in/confirm-registration', { bodyLimit: 16 * 1024 }, async (request, reply) => {
+    if (!request.registrationAccount) return reply.redirect('/login', 303);
+    const event = await currentEvent();
+    if (!event) return reply.callNotFound();
+    const searchQuery = String(request.body?.query ?? '').trim();
+    try {
+      const result = await recordCheckInByRegistration(db, {
+        eventId: event.id,
+        operatorHouseholdId: request.registrationAccount.household.id,
+        registrationId: request.body?.registrationId,
+        now: now(),
+      });
+      const searchResults = await searchCheckInCandidates(db, {
+        eventId: event.id,
+        operatorHouseholdId: request.registrationAccount.household.id,
+        query: searchQuery,
+      });
+      return renderCheckIn(request, reply, event, {
+        result,
+        message: result.status === 'checked_in' ? 'Manual check-in completed.' : null,
+        searchQuery,
+        searchResults,
+      });
+    } catch (error) {
+      if (error instanceof CheckInAccessError) return renderCheckIn(request, reply, event, { message: error.message, statusCode: 403 });
       throw error;
     }
   });

@@ -48,6 +48,15 @@
 <% } %>
       </section>
 <% } %>
+      <form method="post" action="/check-in/search" data-validate-on-blur novalidate>
+        <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+        <fieldset class="field">
+          <label for="household-search"><%= it.t('Search paid households') %></label>
+          <input id="household-search" name="query" value="<%= it.searchQuery %>" autocomplete="off" required>
+          <p class="muted"><%= it.t('Search by household name, phone number, or email address.') %></p>
+        </fieldset>
+        <button class="button" type="submit"><%= it.t('Search households') %></button>
+      </form>
       <form method="post" action="/check-in/preview" data-validate-on-blur novalidate>
         <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
         <fieldset class="field">
@@ -56,5 +65,32 @@
         </fieldset>
         <button class="button" type="submit"><%= it.t('Look up pass') %></button>
       </form>
+<% if (it.searchQuery) { %>
+      <section class="check-in-search-results" aria-live="polite">
+        <h2><%= it.t('Search results') %></h2>
+<% if (!it.searchResults.length) { %>
+        <p class="muted"><%= it.t('No confirmed paid household matched that search.') %></p>
+<% } %>
+<% for (const candidate of it.searchResults) { %>
+        <article class="check-in-candidate">
+          <div>
+            <h3><%= candidate.household.name %></h3>
+            <p class="muted"><%= candidate.household.email %> - <%= candidate.household.mobileE164 %></p>
+            <p><%= it.t('{n} attendees', { n: candidate.attendees.length }) %></p>
+          </div>
+<% if (candidate.alreadyCheckedIn) { %>
+          <strong class="check-in-candidate__status"><%= it.t('Already checked in') %></strong>
+<% } else { %>
+          <form method="post" action="/check-in/confirm-registration">
+            <input type="hidden" name="_csrf" value="<%= it.csrfToken %>">
+            <input type="hidden" name="registrationId" value="<%= candidate.registrationId %>">
+            <input type="hidden" name="query" value="<%= it.searchQuery %>">
+            <button class="button primary" type="submit"><%= it.t('Check in household') %></button>
+          </form>
+<% } %>
+        </article>
+<% } %>
+      </section>
+<% } %>
     </section>
     <script type="module" src="/public/js/check-in.js"></script>

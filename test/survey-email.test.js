@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createMailer, editLinkEmail, registrationAccessEmail, verificationEmail } from '../src/modules/survey/mailer.js';
 import { validForm } from './helpers.js';
+import { translatorFor } from '../src/shared/i18n/index.js';
 import { surveyApp, TOKEN_PATH } from './survey-app.js';
 
 const SMTP = { SMTP_HOST: 'smtp.gmail.com', SMTP_PORT: 587, SMTP_USER: 'site@example.org', SMTP_PASS: 'app-password', SMTP_FROM: 'Pongal <site@example.org>' };
@@ -157,6 +158,25 @@ describe('registration access email', () => {
     expect(transport.sent[0].text).toContain(link);
     expect(transport.sent[0].text).toContain('Keep this link private.');
     expect(transport.sent[0].text).not.toContain('attendee');
+  });
+
+  it('sends a branded confirmation email with the QR note and logo', async () => {
+    const transport = stubTransport();
+    const mailer = createMailer(SMTP, { transport, logger: captureLogger() });
+    const link = 'https://portal.example.org/account/registrations';
+    await expect(mailer.sendRegistrationConfirmedEmail({ to: 'priya@example.com', eventName: 'Pongal 2027', name: 'Priya', link, passToken: 'opaque-pass-token' })).resolves.toBe(true);
+    const [message] = transport.sent;
+    expect(message.subject).toBe('Pongal 2027: you are confirmed!');
+    expect(message.html).toContain(`href="${link}"`);
+    expect(message.html).toContain('Eastcoast Tamil Community, Dover, NH');
+    expect(message.attachments[0].cid).toBe('community-logo');
+    expect(message.attachments[1]).toMatchObject({ cid: 'entry-qr-code', contentType: 'image/png' });
+    expect(message.html).toContain('cid:entry-qr-code');
+  });
+
+  it('translates the registration email', () => {
+    const t = translatorFor('ta');
+    expect(registrationAccessEmail({ eventName: 'Pongal 2027', name: 'Priya', link: 'https://x.org/a', t }).text).toContain('வரவேற்கிறோம், Priya');
   });
 
   it('escapes event names in the HTML body', () => {

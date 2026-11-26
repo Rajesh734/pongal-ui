@@ -49,6 +49,7 @@
 - [x] 5.5 Add browser tests for camera permission denied, camera unavailable, and successful scan on HTTPS at mobile viewport sizes.
 - [x] 5.6 Link the scanner from the admin menu and from the account menu for households with check-in permission; add a vendored jsQR fallback for browsers without BarcodeDetector and a Stop camera control; verify with route and browser tests.
 - [x] 5.7 Show scan results in bold, colour-coded panels (green checked in, yellow already checked in, red invalid/unpaid/wrong event); verify the result classes in route tests.
+- [x] 5.8 Add authorized manual household search by name, phone, or email; restrict results to confirmed paid registrations and show existing check-in state; verify service and route tests cover matching, unpaid exclusion, and duplicate-check-in messaging.
 
 ## 6. Portal pages and navigation
 
@@ -62,6 +63,7 @@
 - [x] 6.8 Add blur-time inline validation backed by the same server rules; verify one message per field while typing and deleting.
 - [x] 6.9 Show admin table rows as labelled stacked cards on phones and widen admin pages on desktop; rename "Age band" to "Age group" with 11+, 5-10, 0-4 in admin pages and CSV; verify in admin tests.
 - [x] 6.10 Reorganize the registration form into numbered sections with plain checkboxes, filled secondary buttons, attendee and performance cards, a WhatsApp same-as-mobile option, role disclosure, and live performance time hints; verify at 390 px and 1280 px and in schema, route, and browser tests.
+- [x] 6.11 Update the Home venue message to explain that the location will be confirmed soon and emailed after finalization; verify the rendered copy and localized catalogs.
 
 ## 7. Localization
 

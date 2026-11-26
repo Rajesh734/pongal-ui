@@ -27,7 +27,7 @@ function selectStatus(value) {
   return ['payment_pending', 'confirmed', 'cancelled'].includes(value) ? value : 'all';
 }
 
-export async function adminRoutes(app, { config, db, jwks, now = () => new Date() } = {}) {
+export async function adminRoutes(app, { config, db, jwks, mailer = null, now = () => new Date() } = {}) {
   const verifyAdmin = createAdminVerifier(config, { jwks });
   if (!verifyAdmin) app.log.warn(ADMIN_DISABLED_WARNING);
   else if (config.ADMIN_DEV_EMAIL && !(config.CF_ACCESS_TEAM_DOMAIN && config.CF_ACCESS_AUD)) app.log.warn(ADMIN_DEV_WARNING);
@@ -120,13 +120,23 @@ export async function adminRoutes(app, { config, db, jwks, now = () => new Date(
     const event = selectEvent(events, request.query.event);
     if (!event) return reply.code(404).send();
     try {
-      await confirmRegistrationPayment(db, {
+      const confirmed = await confirmRegistrationPayment(db, {
         eventId: event.id,
         registrationId: request.params.registrationId,
         adminEmail: request.adminEmail,
         qrEncryptionKey: config.QR_PASS_ENCRYPTION_KEY,
         now: now(),
       });
+      if (!confirmed.alreadyConfirmed && mailer?.sendRegistrationConfirmedEmail && config.APP_BASE_URL) {
+        await mailer.sendRegistrationConfirmedEmail({
+          to: confirmed.registration.contactEmail,
+          eventName: event.name,
+          name: confirmed.registration.contactName,
+          passToken: confirmed.token,
+          link: new URL('/account/registrations', config.APP_BASE_URL).toString(),
+          t: (key, vars) => request.t(key, vars),
+        });
+      }
       return reply.redirect(`/admin/payments?event=${encodeURIComponent(event.slug)}&confirmed=1`, 303);
     } catch (error) {
       if (error instanceof RegistrationEditError) {

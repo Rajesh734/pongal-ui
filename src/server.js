@@ -147,7 +147,7 @@ export async function buildApp(config, { database, logStream, logLevel, now, fet
   });
 
   await app.register(healthRoutes, { database });
-  await app.register(adminRoutes, { prefix: '/admin', config, jwks, db: database?.db, now });
+  await app.register(adminRoutes, { prefix: '/admin', config, jwks, db: database?.db, mailer, now });
   // Survey pages need a real database; tests that only exercise the platform pass a ping-only stub.
   if (database?.db) {
     await app.register(authRoutes, { db: database.db, config, jwks, mailer, now });
