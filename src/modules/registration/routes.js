@@ -199,6 +199,7 @@ export async function registrationRoutes(app, { db, config, mailer = null, now =
       reference: result.registration.id.slice(0, 8).toUpperCase(),
       zellePhone: event.configSnapshot.registration.zelle_phone,
       csrfToken: issueCsrfToken(request, reply, config),
+      showAccountPrompt: !request.registrationAccount,
       message: message ? request.t(message) : message,
       messageIsError: status >= 400,
     });

@@ -8,10 +8,13 @@ import { GoogleCredentialError, verifyGoogleCredential } from './google.js';
 import {
   AccountCredentialConflictError,
   createEmailVerificationToken,
+  createPasswordResetToken,
   createHouseholdSession,
   createManualHouseholdAuth,
   createOrLinkGoogleHousehold,
   findHouseholdSession,
+  findPasswordResetToken,
+  resetHouseholdPassword,
   revokeHouseholdSession,
   HouseholdProfileValidationError,
   updateHouseholdProfile,
@@ -33,6 +36,10 @@ function clearSessionCookie(config) {
 
 function verificationUrl(config, token) {
   return new URL(`/auth/verify/${token}`, config.APP_BASE_URL).toString();
+}
+
+function passwordResetUrl(config, token) {
+  return new URL(`/auth/reset-password/${token}`, config.APP_BASE_URL).toString();
 }
 
 export async function authRoutes(app, { db, config, jwks, mailer = null, now = () => new Date() } = {}) {
@@ -87,6 +94,51 @@ export async function authRoutes(app, { db, config, jwks, mailer = null, now = (
       googleLoginUri,
     }),
   );
+
+  app.get('/forgot-password', async (request, reply) =>
+    reply.view(`${VIEWS}/forgot-password.eta`, {
+      title: request.t('Forgot password'),
+      message: request.query.sent === '1' ? request.t('Check your email for a password reset link.') : null,
+      csrfToken: issueCsrfToken(request, reply, config),
+    }),
+  );
+
+  app.post('/api/auth/forgot-password', { onRequest: authLimit }, async (request, reply) => {
+    const email = typeof request.body?.email === 'string' ? normalizeEmail(request.body.email) : '';
+    const household = email ? await findActiveByEmail(db, email) : null;
+    const [auth] = household ? await db.select().from(householdAuth).where(eq(householdAuth.householdId, household.id)) : [];
+    if (auth?.googleSub && !auth.passwordHash) {
+      return renderMessage(reply, 'Use Google to sign in', 'This household account was created with Google. Please use Google to sign in instead of resetting a password.');
+    }
+    if (!household || !auth?.passwordHash || !config.APP_BASE_URL || !mailer?.sendPasswordResetEmail) {
+      return reply.redirect('/forgot-password?sent=1', 303);
+    }
+    const { token } = await createPasswordResetToken(db, household.id, now());
+    const sent = await mailer.sendPasswordResetEmail({ to: household.email, link: passwordResetUrl(config, token), t: (key, vars) => request.t(key, vars) });
+    return sent ? reply.redirect('/forgot-password?sent=1', 303) : renderMessage(reply, 'Password reset unavailable', 'We could not send the password reset email. Please try again later or contact the organizers.', 503);
+  });
+
+  app.get('/auth/reset-password/:token', async (request, reply) => {
+    const reset = await findPasswordResetToken(db, request.params.token, now());
+    if (!reset) return renderMessage(reply, 'Password reset link expired', 'This password reset link is no longer valid. Request a new link.', 400);
+    if (reset.auth.googleSub && !reset.auth.passwordHash) return renderMessage(reply, 'Use Google to sign in', 'This household account was created with Google. Please use Google to sign in instead of resetting a password.');
+    return reply.view(`${VIEWS}/reset-password.eta`, {
+      title: request.t('Reset password'),
+      token: request.params.token,
+      csrfToken: issueCsrfToken(request, reply, config),
+      message: null,
+    });
+  });
+
+  app.post('/api/auth/reset-password', { onRequest: authLimit }, async (request, reply) => {
+    const password = typeof request.body?.password === 'string' ? request.body.password : '';
+    if (password.length < 8 || password.length > 256) return renderMessage(reply, 'Password reset needs attention', 'Your password must be between 8 and 256 characters.', 400);
+    const reset = await findPasswordResetToken(db, request.body?.token, now());
+    if (!reset) return renderMessage(reply, 'Password reset link expired', 'This password reset link is no longer valid. Request a new link.', 400);
+    if (reset.auth.googleSub && !reset.auth.passwordHash) return renderMessage(reply, 'Use Google to sign in', 'This household account was created with Google. Please use Google to sign in instead of resetting a password.');
+    await resetHouseholdPassword(db, request.body?.token, await hashPassword(password), now());
+    return renderMessage(reply, 'Password updated', 'Your password has been updated. You can now sign in.');
+  });
 
   app.post('/api/auth/signup', { onRequest: authLimit }, async (request, reply) => {
     const firstName = typeof request.body?.firstName === 'string' ? request.body.firstName.trim() : '';

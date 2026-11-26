@@ -30,6 +30,9 @@
       <p class="notice" role="<%= it.messageIsError ? 'alert' : 'status' %>"><%= it.message %></p>
     <% } %>
       <p><%= it.t('Registration status: {status}', { status: it.registration.status === 'confirmed' ? it.t('Confirmed') : it.t('Payment pending') }) %></p>
+    <% if (it.showAccountPrompt) { %>
+      <p class="notice"><%= it.t('Want easier access next time?') %> <a href="/signup"><%= it.t('Create a household account') %></a> <%= it.t('or') %> <a href="/login"><%= it.t('Sign in') %></a>.</p>
+    <% } %>
     <% if (it.payment.status === 'confirmed') { %>
       <p><%= it.t('Payment confirmed. Your Pongal entry pass is ready.') %></p>
       <% if (it.qrCodeDataUrl) { %>

@@ -22,5 +22,6 @@
         </fieldset>
         <button class="button primary" type="submit"><%= it.t('Log in') %></button>
       </form>
+      <p><a href="/forgot-password"><%= it.t('Forgot password?') %></a></p>
       <p><%= it.t('New to the portal?') %> <a href="/signup"><%= it.t('Sign up') %></a></p>
     </section>

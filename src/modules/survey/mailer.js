@@ -59,6 +59,18 @@ export function verificationEmail({ link, t = format }) {
   return { subject: t('Verify your Pongal family account'), text: text.join('\n\n'), html: html.join('\n') };
 }
 
+export function passwordResetEmail({ link, t = format }) {
+  const intro = t('Use this one-time link to reset your household account password:');
+  const expiry = t('This link expires in 1 hour. If you did not request this, ignore this email.');
+  const text = [intro, link, expiry];
+  const html = [
+    `<p>${escapeHtml(intro)}</p>`,
+    `<p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>`,
+    `<p>${escapeHtml(expiry)}</p>`,
+  ];
+  return { subject: t('Reset your Pongal family account password'), text: text.join('\n\n'), html: html.join('\n') };
+}
+
 export function registrationAccessEmail({ eventName, name, link, t = format }) {
   const message = brandedEmail({
     t,
@@ -163,6 +175,7 @@ export function createMailer(config, { transport, now = () => Date.now(), logger
   return {
     sendEditLink: ({ to, eventName, link, closesText, t }) => send(to, editLinkEmail({ eventName, link, closesText, t }), 'Edit-link'),
     sendVerificationEmail: ({ to, link, t }) => send(to, verificationEmail({ link, t }), 'Verification'),
+    sendPasswordResetEmail: ({ to, link, t }) => send(to, passwordResetEmail({ link, t }), 'Password-reset'),
     sendRegistrationAccessEmail: ({ to, eventName, name, link, t }) => send(to, registrationAccessEmail({ eventName, name, link, t }), 'Registration-access'),
     sendRegistrationConfirmedEmail: async ({ to, eventName, name, link, passToken, t }) => {
       const qrPng = passToken ? await QRCode.toBuffer(passToken, { errorCorrectionLevel: 'M', margin: 2, scale: 8 }) : undefined;

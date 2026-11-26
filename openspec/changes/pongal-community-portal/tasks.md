@@ -16,6 +16,7 @@
 - [x] 2.5 Add authenticated household profile reads and updates; verify own-profile access and unauthenticated redirection without exposing another household's data.
 - [x] 2.6 Add auth route tests for rate limits, CSRF/origin rejection, and session-cookie flags; verify no credential or token is written to browser-readable storage.
 - [x] 2.7 Collect first and last name for manual signup, show Google sign-up on the signup page, and explain when SMTP is not configured; verify name validation and the SMTP message.
+- [x] 2.8 Add manual password recovery with one-time reset tokens, reset email, and Google-only guidance; verify manual reset, token reuse denial, and Google-account messaging.
 
 ## 3. Household registration
 
@@ -29,6 +30,7 @@
 - [x] 3.8 Implement registration edit/access behavior and status messages; verify pending guest access, confirmed account history, and that no QR pass appears before payment confirmation.
 - [x] 3.9 Add registration service tests confirming every mutation writes a history snapshot and duplicate submissions for the same household/event do not create duplicate active registrations.
 - [x] 3.10 Email the secure registration access link to signed-in households as well as guests when SMTP is configured; verify both paths send exactly one email to the household address.
+- [x] 3.11 Add optional account creation and sign-in guidance to guest registration status pages without blocking secure-link access; verify the prompt renders for guests and is omitted for signed-in households.
 
 ## 4. Organizer payment and reporting
 

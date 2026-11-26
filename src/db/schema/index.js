@@ -344,6 +344,24 @@ export const emailVerificationTokens = pgTable(
   ],
 );
 
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => householdAuth.householdId),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: tstz('expires_at').notNull(),
+    consumedAt: tstz('consumed_at'),
+    createdAt: tstz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    check('password_reset_tokens_expiry_check', sql`${t.expiresAt} > ${t.createdAt}`),
+    index('password_reset_tokens_household_idx').on(t.householdId),
+  ],
+);
+
 export const registrationAccessTokens = pgTable(
   'registration_access_tokens',
   {

@@ -6,6 +6,24 @@ Lets a family manage its household profile and event registrations through verif
 
 ## ADDED Requirements
 
+### Requirement: Manual accounts can recover passwords
+The system SHALL provide a time-limited, single-use password reset link for verified manual accounts and SHALL direct Google-only accounts to Google sign-in instead of offering a password reset.
+
+#### Scenario: Manual account requests a reset
+- **GIVEN** Priya has a verified manual account
+- **WHEN** she submits her email on "Forgot password"
+- **THEN** the system emails a one-time reset link and displays "Check your email for a password reset link."
+
+#### Scenario: Manual password is updated
+- **GIVEN** Priya opens a valid password reset link
+- **WHEN** she submits a password between 8 and 256 characters
+- **THEN** the password is updated, the link cannot be reused, and the system displays "Your password has been updated. You can now sign in."
+
+#### Scenario: Google-only account requests a reset
+- **GIVEN** Priya's household account was created with Google and has no manual password
+- **WHEN** she submits her email on "Forgot password"
+- **THEN** the system displays "This household account was created with Google. Please use Google to sign in instead of resetting a password."
+
 ### Requirement: Household account signup methods
 The system SHALL allow a household to create or access an account with Google or with an email address and password. Manual signup MUST collect the first name, last name, email, and password, and MUST verify control of the email address before accessing linked registrations. The signup page MUST offer Google sign-up when a Google client ID is configured.
 

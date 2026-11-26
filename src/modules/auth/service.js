@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { inTransaction, writeHistory } from '../../db/history.js';
-import { emailVerificationTokens, householdAuth, householdSessions, households } from '../../db/schema/index.js';
+import { emailVerificationTokens, householdAuth, householdSessions, households, passwordResetTokens } from '../../db/schema/index.js';
 import { normalizeEmail } from '../../db/repos/households.js';
 
 export class AccountCredentialConflictError extends Error {
@@ -114,6 +114,65 @@ export function verifyHouseholdEmail(db, rawToken, now = new Date()) {
     await writeHistory(tx, 'email_verification_token', consumedToken.id, 'update', { consumedAt: now }, 'email_verification');
     await writeHistory(tx, 'household_auth', verifiedAuth.householdId, 'update', verifiedAuth, 'email_verification');
     return verifiedAuth;
+  });
+}
+
+export function createPasswordResetToken(db, householdId, now = new Date()) {
+  const token = randomBytes(32).toString('base64url');
+  const tokenHash = createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(now.getTime() + 60 * 60 * 1000);
+
+  return inTransaction(db, async (tx) => {
+    const [row] = await tx.insert(passwordResetTokens).values({ householdId, tokenHash, expiresAt, createdAt: now }).returning();
+    await writeHistory(tx, 'password_reset_token', row.id, 'create', { householdId, expiresAt }, 'system');
+    return { token, expiresAt };
+  });
+}
+
+function passwordResetTokenHash(rawToken) {
+  if (typeof rawToken !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(rawToken)) return null;
+  return createHash('sha256').update(rawToken).digest('hex');
+}
+
+export async function findPasswordResetToken(db, rawToken, now = new Date()) {
+  const tokenHash = passwordResetTokenHash(rawToken);
+  if (!tokenHash) return null;
+  const [token] = await db.select().from(passwordResetTokens).where(and(
+    eq(passwordResetTokens.tokenHash, tokenHash),
+    isNull(passwordResetTokens.consumedAt),
+    gt(passwordResetTokens.expiresAt, now),
+  ));
+  if (!token) return null;
+  const [[household], [auth]] = await Promise.all([
+    db.select().from(households).where(and(eq(households.id, token.householdId), isNull(households.deletedAt))),
+    db.select().from(householdAuth).where(eq(householdAuth.householdId, token.householdId)),
+  ]);
+  return household && auth ? { token, household, auth } : null;
+}
+
+export function resetHouseholdPassword(db, rawToken, passwordHash, now = new Date()) {
+  const tokenHash = passwordResetTokenHash(rawToken);
+  if (!tokenHash) return Promise.resolve(null);
+  return inTransaction(db, async (tx) => {
+    const [token] = await tx.select().from(passwordResetTokens).where(and(
+      eq(passwordResetTokens.tokenHash, tokenHash),
+      isNull(passwordResetTokens.consumedAt),
+      gt(passwordResetTokens.expiresAt, now),
+    ));
+    if (!token) return null;
+    const [auth] = await tx.select().from(householdAuth).where(eq(householdAuth.householdId, token.householdId));
+    if (!auth?.passwordHash) return { googleOnly: Boolean(auth?.googleSub) };
+    const [updatedAuth] = await tx.update(householdAuth)
+      .set({ passwordHash, updatedAt: now })
+      .where(eq(householdAuth.householdId, token.householdId))
+      .returning();
+    const [consumedToken] = await tx.update(passwordResetTokens)
+      .set({ consumedAt: now })
+      .where(eq(passwordResetTokens.id, token.id))
+      .returning();
+    await writeHistory(tx, 'password_reset_token', consumedToken.id, 'update', { consumedAt: now }, 'password_reset');
+    await writeHistory(tx, 'household_auth', updatedAuth.householdId, 'update', updatedAuth, 'password_reset');
+    return updatedAuth;
   });
 }
 

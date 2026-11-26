@@ -56,7 +56,10 @@ async function setup({ withMailer = true, googleKeys, configOverrides = {} } = {
   database = await migratedMemoryDb();
   emailMessages = [];
   const mailer = withMailer
-    ? { sendVerificationEmail: async (message) => { emailMessages.push(message); return true; } }
+    ? {
+      sendVerificationEmail: async (message) => { emailMessages.push({ type: 'verification', ...message }); return true; },
+      sendPasswordResetEmail: async (message) => { emailMessages.push({ type: 'reset', ...message }); return true; },
+    }
     : null;
   app = await buildApp(testConfig({ APP_BASE_URL, GOOGLE_CLIENT_ID: CLIENT_ID, ...configOverrides }), {
     database,
@@ -68,6 +71,62 @@ async function setup({ withMailer = true, googleKeys, configOverrides = {} } = {
 }
 
 describe('household auth routes', () => {
+  it('resets a verified manual account password with a one-time link', async () => {
+    await setup();
+    const signupPage = await app.inject('/signup');
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/signup',
+      ...protectedForm(signupPage, { firstName: 'Priya', lastName: 'Raman', email: 'priya@example.com', password: 'a-secure-password' }),
+    });
+    const verification = emailMessages.find((email) => email.type === 'verification').link.split('/').at(-1);
+    await app.inject(`/auth/verify/${verification}`);
+
+    const forgotPage = await app.inject('/forgot-password');
+    const forgot = await app.inject({
+      method: 'POST',
+      url: '/api/auth/forgot-password',
+      ...protectedForm(forgotPage, { email: 'priya@example.com' }),
+    });
+    expect(forgot.statusCode).toBe(303);
+    const resetEmail = emailMessages.find((email) => email.type === 'reset');
+    expect(resetEmail.to).toBe('priya@example.com');
+
+    const resetPage = await app.inject(`/auth/reset-password/${resetEmail.link.split('/').at(-1)}`);
+    const reset = await app.inject({
+      method: 'POST',
+      url: '/api/auth/reset-password',
+      ...protectedForm(resetPage, { token: resetEmail.link.split('/').at(-1), password: 'new-secure-password' }),
+    });
+    expect(reset.body).toContain('Your password has been updated. You can now sign in.');
+
+    const loginPage = await app.inject('/login');
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      ...protectedForm(loginPage, { email: 'priya@example.com', password: 'new-secure-password' }),
+    });
+    expect(login.statusCode).toBe(303);
+  });
+
+  it('directs Google-only households back to Google sign-in', async () => {
+    const google = await keys();
+    await setup({ googleKeys: google });
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/google',
+      headers: { origin: APP_BASE_URL, cookie: 'g_csrf_token=csrf-value' },
+      payload: { g_csrf_token: 'csrf-value', credential: await googleCredential(google.privateKey) },
+    });
+    const forgotPage = await app.inject('/forgot-password');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/auth/forgot-password',
+      ...protectedForm(forgotPage, { email: 'priya@example.com' }),
+    });
+    expect(response.body).toContain('This household account was created with Google. Please use Google to sign in instead of resetting a password.');
+  });
+
   it('Manual signup sends a verification link that is single-use', async () => {
     await setup();
     const page = await app.inject('/signup');

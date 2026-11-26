@@ -6,6 +6,17 @@ Lets a household register its family for a Pongal event, submit cultural and vol
 
 ## ADDED Requirements
 
+### Requirement: Guest status offers optional account creation
+After a guest registration is saved, the status page SHALL offer optional household account creation or sign-in without blocking access through the secure registration link.
+
+#### Scenario: Guest sees account guidance
+- **WHEN** a guest opens the saved registration status page
+- **THEN** the page offers "Create a household account" and "Sign in" as optional next steps
+
+#### Scenario: Account creation remains optional
+- **WHEN** a guest follows the registration access link without creating an account
+- **THEN** the guest can still view payment status and manage the registration through the secure link
+
 ### Requirement: Guest and household registration
 The system SHALL allow a household to submit a registration as a guest or while signed in. Every new registration MUST send a secure link to retrieve the registration and payment status to the registration email when email delivery is configured.
 
