@@ -3,4 +3,5 @@
       <h1><%= it.t('About Eastcoast Tamil Community') %></h1>
       <p><%= it.t('Eastcoast Tamil Community is based in New Hampshire, USA.') %></p>
       <p><%= it.t('This portal brings our community together to celebrate Pongal and coordinate household registration for the event.') %></p>
+      <p><%= it.t('We began this initiative last year, and the wonderful support from the NH community helped it grow.') %></p>
     </section>

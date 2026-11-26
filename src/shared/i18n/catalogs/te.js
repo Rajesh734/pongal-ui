@@ -46,6 +46,7 @@ export default {
   "About Eastcoast Tamil Community": "ఈస్ట్‌కోస్ట్ తమిళ్ కమ్యూనిటీ గురించి",
   "Eastcoast Tamil Community is based in New Hampshire, USA.": "ఈస్ట్‌కోస్ట్ తమిళ్ కమ్యూనిటీ అమెరికాలోని న్యూ హాంప్‌షైర్‌లో ఉంది.",
   "This portal brings our community together to celebrate Pongal and coordinate household registration for the event.": "పొంగల్ జరుపుకోవడానికి, కార్యక్రమానికి కుటుంబ నమోదును సమన్వయం చేయడానికి ఈ పోర్టల్ మన సమాజాన్ని ఒకచోట చేరుస్తుంది.",
+  "We began this initiative last year, and the wonderful support from the NH community helped it grow.": "మేము గత సంవత్సరం ఈ ప్రయత్నాన్ని ప్రారంభించాము; NH సమాజం అందించిన అద్భుతమైన మద్దతు అది వృద్ధి చెందడానికి సహాయపడింది.",
   "Reference": "రిఫరెన్స్",
   "Page not found": "పేజీ దొరకలేదు",
   "Sorry, we couldn't find that page.": "క్షమించండి, ఆ పేజీ మాకు దొరకలేదు.",

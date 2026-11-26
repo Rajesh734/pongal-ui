@@ -46,6 +46,7 @@ export default {
   "About Eastcoast Tamil Community": "ஈஸ்ட்கோஸ்ட் தமிழ் சமூகம் பற்றி",
   "Eastcoast Tamil Community is based in New Hampshire, USA.": "ஈஸ்ட்கோஸ்ட் தமிழ் சமூகம் அமெரிக்காவின் நியூ ஹாம்ப்ஷயரில் செயல்படுகிறது.",
   "This portal brings our community together to celebrate Pongal and coordinate household registration for the event.": "பொங்கலைக் கொண்டாடவும், நிகழ்வுக்கான குடும்பப் பதிவை ஒருங்கிணைக்கவும் இந்த இணையதளம் நம் சமூகத்தை ஒன்றிணைக்கிறது.",
+  "We began this initiative last year, and the wonderful support from the NH community helped it grow.": "கடந்த ஆண்டு இந்த முயற்சியைத் தொடங்கியோம்; NH சமூகத்தின் அருமையான ஆதரவு அதை வளர உதவியது.",
   "Reference": "குறிப்பு எண்",
   "Page not found": "பக்கம் கிடைக்கவில்லை",
   "Sorry, we couldn't find that page.": "மன்னிக்கவும், அந்தப் பக்கம் கிடைக்கவில்லை.",
