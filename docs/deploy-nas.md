@@ -8,8 +8,6 @@ For the completed PostgreSQL installation and app connection procedure, see the 
 
 For a live outage involving an unhealthy container, Turnstile errors, unreadable secret files, or a missing `IMAGE_TAG`, use the focused [Turnstile and NAS recovery runbook](runbooks/2026-11-22-turnstile-nas-recovery.md).
 
-To deliberately clear the non-production database and restart the app, follow the [non-production database reset runbook](runbooks/2026-11-25-nonprod-db-reset.md). Never use it against production.
-
 How releases flow:
 
 - **Build** (`.github/workflows/build.yml`) runs the tests on every push and pushes the image `ghcr.io/rajesh734/pongal-ui/community-site:sha-<7-char commit>` to GHCR (not for pull requests).

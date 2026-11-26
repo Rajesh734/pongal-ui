@@ -7,7 +7,7 @@ import { seedEvents } from '../src/db/seed-events.js';
 import { checkInPermissions, changeHistory, events, households, registrationCheckIns, registrationPasses, registrations } from '../src/db/schema/index.js';
 import { createOrLinkGoogleHousehold } from '../src/modules/auth/service.js';
 import { confirmRegistrationPayment, createRegistration } from '../src/modules/registration/service.js';
-import { CheckInAccessError, previewCheckIn, recordCheckIn } from '../src/modules/registration/checkin-service.js';
+import { CheckInAccessError, previewCheckIn, recordCheckIn, recordCheckInByRegistration, searchCheckInCandidates } from '../src/modules/registration/checkin-service.js';
 import { buildRegistrationSchema, validateRegistration } from '../src/shared/registration-schema.js';
 import { migratedMemoryDb } from './helpers.js';
 
@@ -126,5 +126,31 @@ describe('check-in service', () => {
       .rejects.toBeInstanceOf(CheckInAccessError);
     await expect(recordCheckIn(database.db, { eventId: event.id, operatorHouseholdId: household.id, token }))
       .rejects.toBeInstanceOf(CheckInAccessError);
+  });
+
+  it('finds confirmed households by contact details and reports manual check-in state', async () => {
+    const { database, event, household, registration } = await setup();
+    const byName = await searchCheckInCandidates(database.db, {
+      eventId: event.id,
+      operatorHouseholdId: household.id,
+      query: 'Priya',
+    });
+    expect(byName).toHaveLength(1);
+    expect(byName[0]).toMatchObject({ registrationId: registration.id, alreadyCheckedIn: false });
+
+    const checkedIn = await recordCheckInByRegistration(database.db, {
+      eventId: event.id,
+      operatorHouseholdId: household.id,
+      registrationId: registration.id,
+      now,
+    });
+    expect(checkedIn.status).toBe('checked_in');
+
+    const byPhone = await searchCheckInCandidates(database.db, {
+      eventId: event.id,
+      operatorHouseholdId: household.id,
+      query: '6031234567',
+    });
+    expect(byPhone[0]).toMatchObject({ registrationId: registration.id, alreadyCheckedIn: true });
   });
 });

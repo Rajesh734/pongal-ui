@@ -1,4 +1,4 @@
-# community-site (pongal-ui)
+# community-site (Pongal UI)
 
 Community website for our yearly celebrations. The first app is the Pongal 2027 interest survey; event registration and other small community apps follow. It runs on a Synology NAS in Docker behind Cloudflare Tunnel and keeps data permanently for year-over-year history.
 

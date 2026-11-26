@@ -17,6 +17,10 @@ The root route SHALL render the Pongal event Home page with event details and a 
 - **WHEN** the event date or agenda has not been approved
 - **THEN** the page does not present prior-year flyer details as confirmed 2027 information
 
+#### Scenario: Venue is not yet finalized
+- **WHEN** the event venue has not been finalized
+- **THEN** the Home page shows "Venue details coming soon." and "We'll confirm the location soon and email you the details once it's finalized."
+
 ### Requirement: Portal navigation exposes the agreed pages
 The public navigation SHALL include Home, Register, and About. On admin pages, the header navigation SHALL show the organizer links instead of the public links. On narrow screens the header links SHALL move into a three-line menu icon at the top left. Open menus MUST close when the visitor clicks or taps outside them or presses Escape. The navigation MUST NOT expose the existing interest survey.
 

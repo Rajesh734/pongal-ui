@@ -6,6 +6,24 @@ Lets authorized organizers and approved check-in volunteers validate confirmed h
 
 ## ADDED Requirements
 
+### Requirement: Authorized users can find paid households without a pass
+The scanner SHALL allow an authorized check-in user to search confirmed registrations by household name, phone number, or email address. Search results MUST exclude payment-pending and deleted registrations.
+
+#### Scenario: Search finds a confirmed household by contact detail
+- **GIVEN** Priya has a confirmed registration for the current event
+- **WHEN** an authorized check-in user searches for Priya's household name, phone number, or email address
+- **THEN** the scanner shows Priya's household, attendee count, and attendees with a "Check in household" action
+
+#### Scenario: Search excludes unpaid households
+- **GIVEN** Arun has a payment-pending registration for the current event
+- **WHEN** an authorized check-in user searches for Arun's household
+- **THEN** no result for Arun is shown
+
+#### Scenario: Search identifies an existing check-in
+- **GIVEN** Priya's confirmed household has already checked in
+- **WHEN** an authorized check-in user searches for Priya's household
+- **THEN** the result shows "Already checked in" and does not offer a second check-in
+
 ### Requirement: QR pass privacy and eligibility
 Each confirmed registration MUST have a QR pass with an unguessable token that contains no attendee names, email addresses, or phone numbers. A payment-pending registration MUST NOT have a usable entry pass.
 
