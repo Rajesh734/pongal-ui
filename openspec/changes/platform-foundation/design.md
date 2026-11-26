@@ -4,7 +4,7 @@
 
 See proposal.md for motivation. Constraints that shape the approach:
 
-- Runs on a Synology DS920+ (Celeron J4125, 4 GB RAM) in Docker, reached only through the existing Cloudflare Tunnel container. Only one NAS exists. **Update (Nov 2026):** PostgreSQL 18 Alpine now runs as a separate stack on the NAS (`/volume1/docker/kalanjiyam`, network `kalanjiyam-net`), so non-production and production use PostgreSQL; PGlite is kept for development and tests. The original plan below (production on PGlite, D9) is superseded where noted.
+- Runs on a Synology DS920+ (Celeron J4125, 4 GB RAM) in Docker, reached only through the existing Cloudflare Tunnel container. Only one NAS exists. **Update (Nov 2026):** PostgreSQL 18 Alpine now runs as a separate stack on the NAS (`/volume1/docker/kalanjiyam`, network `kalanjiyam-net`), so non-prod and prod use PostgreSQL; PGlite is kept for development and tests. The original plan below (prod on PGlite, D9) is superseded where noted.
 - The NAS is reachable for administration only over Tailscale with SSH; another app already deploys to it from GitHub Actions this way, and this change follows that pattern.
 - The repository is public, so workflow logs are world-readable.
 - Real family data is collected from launch, so the database is production data from day one: it needs backups (PostgreSQL 18 backup service in production; the PGlite job in D9 only for the embedded driver).
@@ -171,7 +171,7 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 - Image: `node:26-alpine` (Node 26 LTS), `npm ci --omit=dev`, runs as `node` (uid 1000), `HEALTHCHECK` calling `/healthz`. Built by CI for `linux/amd64` (the J4125 is x86-64) and published as `ghcr.io/rajesh734/pongal-ui/community-site`.
 - `compose.yaml`: project `name: community-site-${APP_ENV}` (both environment folders are called `community-site`, so without it they would share one Compose project), service `community-site` using `image: ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}` (no `build:`), `container_name: community-site-${APP_ENV}`, port 3000 **published on the NAS loopback only** (`127.0.0.1:${HOST_PORT}:3000`, `HOST_PORT` from `.env`), because the existing `cloudflared` container (`cloudflare-pranphoto`, also serving Synology Photos) runs in host network mode and reaches services through `localhost`; volumes `./data:/data`; Compose `secrets:` from `./secrets/<name>` files; non-secret settings from `.env`. The same file serves both environments.
 - One folder per environment: `/volume1/platform/docker/{non-prod,prod}/community-site/` owned by the deploy user, holding `compose.yaml`, `.env` (`APP_ENV`, `HOST_PORT`, non-secret settings), `secrets/` (owner 1000, mode 711 so the deploy user can resolve the paths for Compose but not list or read them; files mode 400), `data/` (owner 1000, mode 700) and `.deployed-tag` (the image tag that is running).
-- `HOST_PORT` is `3101` for non-prod and `3100` for production (3000 is used by another app on the NAS). Cloudflare Tunnel public hostnames point to `http://localhost:3101` and `http://localhost:3100`.
+- `HOST_PORT` is `3101` for non-prod and `3100` for prod (3000 is used by another app on the NAS). Cloudflare Tunnel public hostnames point to `http://localhost:3101` and `http://localhost:3100`.
 - *Publish port 3000 on all NAS interfaces* - rejected: anyone on the LAN could bypass Cloudflare.
 - *Shared Docker network with `cloudflared`* - rejected: the existing tunnel container uses host networking and cannot join another network.
 - *Second `cloudflared` container for this app* - rejected: another tunnel and token to manage and more memory on a 4 GB NAS.
@@ -189,7 +189,7 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 
 ### D12. Deploy workflow over Tailscale + SSH
 `.github/workflows/deploy.yml`:
-- Triggers: `workflow_run` when Build completes successfully on `main` deploys tag `sha-<short>` of that commit to `non-prod`; `workflow_dispatch` with inputs `environment` (`non-prod`/`production`) and `image_tag` (required, no `latest`) deploys anything else. GitHub Environment `production` can require a reviewer.
+- Triggers: `workflow_run` when Build completes successfully on `main` deploys tag `sha-<short>` of that commit to `non-prod`; `workflow_dispatch` with inputs `environment` (`non-prod`/`prod`) and `image_tag` (required, no `latest`) deploys anything else. GitHub Environment `prod` can require a reviewer.
 - `concurrency: deploy-<environment>` so two deploys never overlap on one environment.
 - Network: `tailscale/github-action@v3` with an OAuth client and ephemeral `tag:ci` node. The tailnet ACL lets `tag:ci` reach only the NAS on its SSH port.
 - SSH: dedicated NAS user in the `docker` group with a deploy-only key; host key pinned from the `NAS_KNOWN_HOSTS` secret with `StrictHostKeyChecking=yes`. The key file is deleted at the end of the job.
@@ -217,7 +217,7 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 - [Secret files unreadable by uid 1000 cause startup failure] -> Clear startup message names the file; runbook sets `chown 1000:1000` and `chmod 400`.
 - [Rolling back the image does not undo a database migration] -> The deploy copies `data/pglite` before starting the new image; the runbook shows how to restore that copy together with the previous tag.
 - [CI runners join the tailnet] -> Ephemeral `tag:ci` nodes, ACL limited to the NAS SSH port, deploy user limited to Docker and its folders.
-- [Auto-deploy pushes every `main` commit to non-prod] -> Acceptable for non-prod; production deploys stay manual with a chosen tag.
+- [Auto-deploy pushes every `main` commit to non-prod] -> Acceptable for non-prod; prod deploys stay manual with a chosen tag.
 - [Any process on the NAS can reach the app through `127.0.0.1`] -> Only admins run software on the NAS; LAN and internet clients still cannot reach the port.
 
 
@@ -226,11 +226,11 @@ PGlite allows one process to open the data folder, so the backup runs inside the
 1. Commit the OpenSpec plan to `main`, then on the feature branch add the skeleton (tasks 1-7).
 2. Push the branch: the Build workflow tests the code and publishes the image to GHCR (no local Docker needed).
 3. One-time setup per the runbook: NAS folders, secret files, `.env`, GHCR login and deploy user; Tailscale tag, ACL and OAuth client; GitHub Environments and secrets; Tunnel routes.
-4. Merge to `main`: Deploy runs to `non-prod` automatically. Check it, then run Deploy manually for `production` with the same `sha-` tag.
+4. Merge to `main`: Deploy runs to `non-prod` automatically. Check it, then run Deploy manually for `prod` with the same `sha-` tag.
 5. Rollback: run Deploy with the previous tag (recorded in the job log and `.deployed-tag`), or `docker compose down` to stop. Data stays in `./data`. Nothing else on the NAS changes.
 
 ## Open Questions
 
 - Name of the existing Docker network used by the `cloudflared` container - resolved: `cloudflare-pranphoto` uses host networking, so the app is published on `127.0.0.1` instead (D10).
 - Compose command on the DSM version in use: `docker compose` (v2) or `/usr/local/bin/docker-compose` as in the existing app's deploy. The deploy script uses whichever the NAS has.
-- Public hostnames for `non-prod` and `production`.
+- Public hostnames for `non-prod` and `prod`.

@@ -7,7 +7,7 @@ The repository is empty apart from the OpenSpec plan. The Pongal 2027 Interest S
 ## What Changes
 
 - **Add** repository basics: `package.json`, `.gitignore`, `.nvmrc`, `README.md` and `Dockerfile`.
-- **Add** a build workflow that runs the tests and pushes the Docker image to GitHub Container Registry (GHCR), and a deploy workflow that reaches the NAS over Tailscale + SSH. Every push to `main` deploys to `non-prod` automatically; `production` is deployed by a manual run with a chosen image tag. A deploy that does not become healthy is rolled back to the previous image.
+- **Add** a build workflow that runs the tests and pushes the Docker image to GitHub Container Registry (GHCR), and a deploy workflow that reaches the NAS over Tailscale + SSH. Every push to `main` deploys to `non-prod` automatically; `prod` is deployed by a manual run with a chosen image tag. A deploy that does not become healthy is rolled back to the previous image.
 - **Add** a Node.js 26 / Fastify 5 skeleton (ES modules, no front-end build step) with security headers, request IDs, PII-free logging, a health endpoint and friendly 404/500 pages.
 - **Add** configuration loading from env vars where each secret can also come from a file (`X_FILE`), so secrets live in Synology-managed Docker Compose secret files and never in the repo. The repo ships only `.env.example` with dummy values and Cloudflare's public Turnstile test keys.
 - **Add** a database layer selected by `DB_DRIVER` (`pglite` now, `postgres` later) with Drizzle migrations that run unchanged on both, plus a nightly PGlite backup.
@@ -31,12 +31,12 @@ _None - no specs exist yet._
 
 - New codebase in an empty repository.
 - New dependencies: fastify, @fastify/{view,static,formbody,helmet,rate-limit}, eta, @electric-sql/pglite, pg, drizzle-orm, drizzle-kit, zod, yaml, pino, vitest.
-- Deployment target: Docker Compose on the Synology NAS behind the existing Cloudflare Tunnel container, with two environments (`non-prod`, `production`) in `/volume1/platform/docker/{non-prod,prod}/community-site`.
-- New external setup: a GHCR package, GitHub Environments `non-prod` and `production` with access secrets (NAS host, user, port, SSH key, pinned host key, Tailscale OAuth client), a Tailscale `tag:ci` ACL limited to the NAS SSH port, a NAS deploy user, and a read-only GHCR token on the NAS.
+- Deployment target: Docker Compose on the Synology NAS behind the existing Cloudflare Tunnel container, with two environments (`non-prod`, `prod`) in `/volume1/platform/docker/{non-prod,prod}/community-site`.
+- New external setup: a GHCR package, GitHub Environments `non-prod` and `prod` with access secrets (NAS host, user, port, SSH key, pinned host key, Tailscale OAuth client), a Tailscale `tag:ci` ACL limited to the NAS SSH port, a NAS deploy user, and a read-only GHCR token on the NAS.
 
 ## Out of Scope
 
 - The survey form, edit link and emails (change `pongal-2027-interest-survey`).
 - Admin pages, Cloudflare Access verification and CSV export (change `admin-csv-export`).
-- Switching production to PostgreSQL and migrating PGlite data (later change `postgres-cutover`).
+- Switching prod to PostgreSQL and migrating PGlite data (later change `postgres-cutover`).
 - Decision report, XLSX export, soft-delete/restore/anonymize UI, past-event pages, registration.

@@ -28,6 +28,6 @@ Edit `src/db/schema/index.js`, then run `npm run db:generate`. Migrations in `dr
 
 ## Deploy
 
-Every push runs **Build** (tests, then the image is pushed to GHCR as `sha-<commit>`). A green Build on `main` deploys to `non-prod` automatically; `production` is deployed with **Actions > Deploy > Run workflow**. Setup and operations: [docs/deploy-nas.md](docs/deploy-nas.md).
+Every push runs **Build** (tests, then the image is pushed to GHCR as `sha-<commit>`). A green Build on `main` deploys to `non-prod` automatically; `prod` is deployed with **Actions > Deploy > Run workflow**. Setup and operations: [docs/deploy-nas.md](docs/deploy-nas.md).
 
 Plans and specs live in `openspec/`.

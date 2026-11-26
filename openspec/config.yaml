@@ -9,7 +9,7 @@ context: |
   Tech stack:
   - Node.js 26 LTS, JavaScript ES modules, no front-end build step
   - Fastify 5 (+ @fastify/view with Eta, static, formbody, helmet, rate-limit)
-  - PostgreSQL 18 Alpine (postgres:18-alpine) in production (independent Docker stack on the NAS, shared by all apps);
+  - PostgreSQL 18 Alpine (postgres:18-alpine) in prod (independent Docker stack on the NAS, shared by all apps);
     PGlite (embedded Postgres, in-memory or local folder) for development and tests, selected by DB_DRIVER
   - Drizzle ORM + drizzle-kit SQL migrations (the same migrations run on both drivers)
   - Zod validation: ONE shared schema module used by both the server and the browser

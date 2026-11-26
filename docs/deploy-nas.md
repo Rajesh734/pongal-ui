@@ -2,7 +2,7 @@ ls -la /volume1/platform/docker/non-prod/community-site   # .env, secrets/, data
 
 # Runbook: deploy community-site on the Synology NAS
 
-The app runs as one Docker Compose service per environment (`non-prod`, `production`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` production): the tunnel reaches it through `localhost`, LAN devices cannot. PostgreSQL 18 Alpine runs separately in `/volume1/docker/kalanjiyam`; app containers join its internal `kalanjiyam-net` with no published database port. The old `data/pglite` directory is retained until its data-migration decision is complete.
+The app runs as one Docker Compose service per environment (`non-prod`, `prod`) on the Synology DS920+, reachable only through the existing Cloudflare Tunnel container (`cloudflare-pranphoto`, which also serves Synology Photos). That container uses host networking, so each environment publishes its port on the NAS loopback address only (`127.0.0.1:3101` non-prod, `127.0.0.1:3100` prod): the tunnel reaches it through `localhost`, LAN devices cannot. PostgreSQL 18 Alpine runs separately in `/volume1/docker/kalanjiyam`; app containers join its internal `kalanjiyam-net` with no published database port. The old `data/pglite` directory is retained until its data-migration decision is complete.
 
 For the completed PostgreSQL installation and app connection procedure, see the [PostgreSQL 18 NAS runbook](runbooks/2026-11-23-postgresql-18-nas.md). The app uses the existing `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USER`, and `DATABASE_PASSWORD_FILE` settings. Keep this repository's `drizzle.config.js` and `drizzle/` migrations; do not copy the alternate migration path from the original setup notes.
 
@@ -13,7 +13,7 @@ How releases flow:
 - **Build** (`.github/workflows/build.yml`) runs the tests on every push and pushes the image `ghcr.io/rajesh734/pongal-ui/community-site:sha-<7-char commit>` to GHCR (not for pull requests).
 - **Deploy** (`.github/workflows/deploy.yml`) joins the tailnet, connects to the NAS over SSH and runs `scripts/nas-deploy.sh`: pull the image, stop the old container, copy `data/pglite` to `data/pre-deploy/<old-tag>`, start the new tag and wait for `healthy`. If it is not healthy within 2 minutes, the old tag is started again and the job fails.
   - A successful Build on `main` deploys to `non-prod` automatically.
-  - `production` is deployed by hand: **Actions > Deploy > Run workflow**, environment `production`, tag `sha-xxxxxxx`.
+  - `prod` is deployed by hand: **Actions > Deploy > Run workflow**, environment `prod`, tag `sha-xxxxxxx`.
 
 Sections 1-6 are one-time setup. Run NAS commands over SSH as an administrator (`sudo -i`) unless the step says otherwise.
 
@@ -93,8 +93,8 @@ HOST_PORT=3100                    # 3101 in the non-prod folder; bound to 127.0.
 DB_DRIVER=postgres
 DATABASE_HOST=kalanjiyam
 DATABASE_PORT=5432
-DATABASE_NAME=samugam              # production; use a separate DB for non-prod
-DATABASE_USER=samugam_app          # production; use a separate role for non-prod
+DATABASE_NAME=samugam              # prod; use a separate DB for non-prod
+DATABASE_USER=samugam_app          # prod; use a separate role for non-prod
 APP_BASE_URL=https://<public-hostname>
 GOOGLE_CLIENT_ID=<Google client ID>
 TURNSTILE_SITE_KEY=<public site key from Cloudflare Turnstile>
@@ -106,7 +106,7 @@ CF_ACCESS_TEAM_DOMAIN=<team>.cloudflareaccess.com
 CF_ACCESS_AUD=<Access application AUD tag>
 ```
 
-The production database is `samugam` with login `samugam_app`. Do not point non-production at that database. Create a separate non-prod database and role with the commands in `docs/runbooks/2026-11-23-postgresql-18-nas.md` (section 3), then set `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app` in non-prod `.env`. Store each environment's own database password in `secrets/database_password`.
+The prod database is `samugam` with login `samugam_app`. Do not point non-prod at that database. Create a separate non-prod database and role with the commands in `docs/runbooks/2026-11-23-postgresql-18-nas.md` (section 3), then set `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app` in non-prod `.env`. Store each environment's own database password in `secrets/database_password`.
 
 Compose mounts that secret as `/run/secrets/database_password`; it passes `DATABASE_PASSWORD_FILE` to the app, not the password itself. The app expects separate `DATABASE_*` settings, not the `DATABASE_URL` shown in the original Step 10 example. Keep the existing repository Drizzle configuration and `drizzle/` migrations. Migrations run at app startup; there is no `npm run seed` command.
 
@@ -230,7 +230,7 @@ Then **Settings > OAuth clients** (called *Trust credentials* in newer consoles)
 In the repository: **Settings > Environments**:
 
 1. Create `non-prod`.
-2. Create `production`: add yourself under **Required reviewers**, and under **Deployment branches** allow only `main`.
+2. Create `prod`: add yourself under **Required reviewers**, and under **Deployment branches** allow only `main`.
 
 Add these secrets to **both** environments:
 
@@ -253,7 +253,7 @@ In Cloudflare Zero Trust > Networks > Tunnels > (the `cloudflare-pranphoto` tunn
 | Public hostname | Service |
 |---|---|
 | non-prod hostname | `HTTP` `localhost:3101` |
-| production hostname | `HTTP` `localhost:3100` |
+| prod hostname | `HTTP` `localhost:3100` |
 
 ### Cloudflare Access for `/admin`
 

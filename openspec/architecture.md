@@ -7,7 +7,7 @@ Not reproducible from text and kept as versioned inputs: `config/events/*.yaml`,
 ## Runtime and stack
 - Node.js 26 LTS, plain JavaScript ES modules, no front-end build step.
 - Fastify 5 with `@fastify/view` (Eta templates), `static`, `formbody`, `helmet`, `rate-limit`.
-- PostgreSQL 18 Alpine in production (a separate stack on the NAS, private Docker network `kalanjiyam-net`, no published port). PGlite (embedded Postgres) for local development and tests. `DB_DRIVER=postgres|pglite` selects one; the same Drizzle SQL migrations in `drizzle/` run on both and are applied at startup.
+- PostgreSQL 18 Alpine in prod (a separate stack on the NAS, private Docker network `kalanjiyam-net`, no published port). PGlite (embedded Postgres) for local development and tests. `DB_DRIVER=postgres|pglite` selects one; the same Drizzle SQL migrations in `drizzle/` run on both and are applied at startup.
 - Zod validation shared by server and browser; Alpine.js (CSP build) for the survey form; jsQR for the scanner fallback; all vendored under `src/public/vendor` and `src/shared`.
 - Vitest for tests. Run `npm test`; tests use in-memory PGlite.
 
@@ -57,8 +57,8 @@ Nodemailer over SMTP, optional (enabled when `SMTP_HOST`, `SMTP_USER`, `SMTP_PAS
 
 ## Build and deploy
 - `Dockerfile`: `node:26-alpine`, `npm ci --omit=dev`, user `node` (uid 1000), health check on `/healthz`.
-- `compose.yaml`: one file for both environments; image `ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}`; port published on `127.0.0.1:${HOST_PORT}` only (3101 non-prod, 3100 production); file-based secrets; joins `kalanjiyam-net`.
-- GitHub Actions: `build.yml` tests, builds `linux/amd64`, checks uid 1000 and loopback-only ports, pushes `sha-<short>` tags to GHCR. `deploy.yml` runs over Tailscale and SSH, auto for non-prod on `main`, manual for production with a chosen tag, with health-gated rollback.
+- `compose.yaml`: one file for both environments; image `ghcr.io/rajesh734/pongal-ui/community-site:${IMAGE_TAG}`; port published on `127.0.0.1:${HOST_PORT}` only (3101 non-prod, 3100 prod); file-based secrets; joins `kalanjiyam-net`.
+- GitHub Actions: `build.yml` tests, builds `linux/amd64`, checks uid 1000 and loopback-only ports, pushes `sha-<short>` tags to GHCR. `deploy.yml` runs over Tailscale and SSH, auto for non-prod on `main`, manual for prod with a chosen tag, with health-gated rollback.
 - Runbooks: `docs/deploy-nas.md` and `docs/runbooks/`.
 
 ## Visual design and assets

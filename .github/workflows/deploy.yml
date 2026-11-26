@@ -12,7 +12,7 @@ on:
         required: true
         default: non-prod
         type: choice
-        options: [non-prod, production]
+        options: [non-prod, prod]
       image_tag:
         description: Image tag to deploy, e.g. sha-1a2b3c4 (see the Build run summary)
         required: true
@@ -50,7 +50,7 @@ jobs:
             echo "Invalid image tag '$TAG' (use an immutable tag such as sha-1a2b3c4)"; exit 1
           fi
           case "$ENVIRONMENT" in
-            production) DIR=/volume1/platform/docker/prod/community-site ;;
+            prod) DIR=/volume1/platform/docker/prod/community-site ;;
             non-prod) DIR=/volume1/platform/docker/non-prod/community-site ;;
             *) echo "Unknown environment '$ENVIRONMENT'"; exit 1 ;;
           esac

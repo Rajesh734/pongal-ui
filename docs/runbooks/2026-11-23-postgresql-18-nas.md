@@ -6,7 +6,7 @@ Record and complete the private PostgreSQL 18 deployment on the Synology NAS and
 
 - Run PostgreSQL 18 Alpine in the NAS Docker network `kalanjiyam-net` with no published PostgreSQL port.
 - Connect the Pongal application using its existing PostgreSQL driver and Drizzle migrations.
-- Keep production and non-production databases and credentials separate.
+- Keep prod and non-prod databases and credentials separate.
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ DATABASE_HOST=kalanjiyam
 DATABASE_PORT=5432
 DATABASE_NAME=samugam
 DATABASE_USER=samugam_app
-APP_BASE_URL=https://<production-hostname>
+APP_BASE_URL=https://<prod-hostname>
 GOOGLE_CLIENT_ID=<Google client ID>
 ```
 
@@ -52,9 +52,9 @@ Do not print or paste the key. Set ownership and permissions so the app containe
 
 **Verification**: `docker compose config` succeeds in the production folder. `docker inspect community-site-prod --format '{{range .Config.Env}}{{println .}}{{end}}'` shows `DB_DRIVER=postgres`, `DATABASE_HOST=kalanjiyam`, `DATABASE_PASSWORD_FILE=/run/secrets/database_password`, and `QR_PASS_ENCRYPTION_KEY_FILE=/run/secrets/qr_pass_encryption_key`, but no secret values.
 
-### 3. Create isolated non-production database access
+### 3. Create isolated non-prod database access
 
-Do not point non-production at the production `samugam` database. The `initdb/01-samugam.sh` script runs only when PostgreSQL initialises an empty data folder, so do not re-run it. Create the non-production role and database once, with the same settings, from the non-production app folder. The password is generated, passed to `psql` through the environment (never on the command line), and written straight to the secret file:
+Do not point non-prod at the prod `samugam` database. The `initdb/01-samugam.sh` script runs only when PostgreSQL initialises an empty data folder, so do not re-run it. Create the non-prod role and database once, with the same settings, from the non-prod app folder. The password is generated, passed to `psql` through the environment (never on the command line), and written straight to the secret file:
 
 ```sh
 cd /volume1/platform/docker/non-prod/community-site
@@ -77,11 +77,11 @@ chmod 400 secrets/database_password
 chown 1000:1000 secrets/database_password
 ```
 
-Then set the non-production `.env` to `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app`.
+Then set the non-prod `.env` to `DATABASE_NAME=samugam_nonprod` and `DATABASE_USER=samugam_nonprod_app`.
 
-Add `samugam_nonprod` to the PostgreSQL backup service's database list. Keep the production and non-production password files distinct, and do not paste either password into chat or documentation.
+Add `samugam_nonprod` to the PostgreSQL backup service's database list. Keep the prod and non-prod password files distinct, and do not paste either password into chat or documentation.
 
-**Verification**: `docker exec kalanjiyam psql -U samugam_nonprod_app -d samugam_nonprod -c 'SELECT current_user, current_database();'` reports the non-production role/database. Attempts to create a database or connect as the app role to the maintenance database should fail.
+**Verification**: `docker exec kalanjiyam psql -U samugam_nonprod_app -d samugam_nonprod -c 'SELECT current_user, current_database();'` reports the non-prod role/database. Attempts to create a database or connect as the app role to the maintenance database should fail.
 
 ### 4. Attach the application to the private database network
 
@@ -97,13 +97,13 @@ The app's startup sequence applies all migrations from the repository's `drizzle
 
 ### 6. Preserve and decide the fate of existing PGlite data
 
-The app Compose file retains the existing `./data:/data` volume, but PostgreSQL mode does not read `data/pglite`. Do not delete that volume. Before replacing the currently deployed PGlite-backed production app, decide whether its survey responses and history must be exported/imported into PostgreSQL. This runbook does not perform that data migration.
+The app Compose file retains the existing `./data:/data` volume, but PostgreSQL mode does not read `data/pglite`. Do not delete that volume. Before replacing the currently deployed PGlite-backed prod app, decide whether its survey responses and history must be exported/imported into PostgreSQL. This runbook does not perform that data migration.
 
 **Verification**: Confirm `data/pglite` remains present in each app environment and that PostgreSQL contains the expected data before treating the cutover as complete.
 
 ### 7. Verify PostgreSQL backups and restore
 
-The selected `6A` setup uses `prodrigestivill/postgres-backup-local:18` with daily backups and retention of 30 days, 8 weeks, and 12 months. Backups are stored under `/volume1/docker/kalanjiyam/backups`; add this folder to the NAS Hyper Backup task with client-side encryption. Include both production and non-production databases in the backup service configuration.
+The selected `6A` setup uses `prodrigestivill/postgres-backup-local:18` with daily backups and retention of 30 days, 8 weeks, and 12 months. Backups are stored under `/volume1/docker/kalanjiyam/backups`; add this folder to the NAS Hyper Backup task with client-side encryption. Include both prod and non-prod databases in the backup service configuration.
 
 **Verification**: Confirm the backup container completes a backup and the expected database dump appears. Periodically restore a dump into a temporary database, verify its tables, then drop the temporary database.
 
@@ -111,7 +111,7 @@ The selected `6A` setup uses `prodrigestivill/postgres-backup-local:18` with dai
 
 - [ ] PostgreSQL reports version 18.x and the app role owns only its assigned database.
 - [ ] PostgreSQL has no published port; only containers on `kalanjiyam-net` can reach it.
-- [ ] Production and non-production use separate databases, roles, and password files.
+- [ ] Prod and non-prod use separate databases, roles, and password files.
 - [ ] App startup applies Drizzle migrations and `/healthz` reports the database healthy.
 - [ ] Database backups are present and a restore test succeeds.
 - [ ] Existing PGlite data is retained until its migration decision is resolved.
@@ -124,7 +124,7 @@ The selected `6A` setup uses `prodrigestivill/postgres-backup-local:18` with dai
 | Password authentication fails | The app secret file does not match the selected database role | Replace the environment's `secrets/database_password` locally from the password manager and verify its owner/mode. Never paste the value into logs or chat. |
 | App exits because the QR key is invalid | The QR encryption secret is missing or is not base64 for 32 bytes | Generate a new 32-byte value with `openssl rand -base64 32`, save it locally as `secrets/qr_pass_encryption_key`, set container-readable ownership/mode, then recreate the app. Existing passes require their original key. |
 | Migration fails creating `citext` | The application role lacks ownership/extension privileges in its database | Confirm the database is owned by the app role and `citext` is available in the PostgreSQL image. |
-| App starts against an empty database | The Compose environment uses the wrong `DATABASE_NAME` | Check the environment-specific `.env`; production uses `samugam`, non-production uses its dedicated database. |
+| App starts against an empty database | The Compose environment uses the wrong `DATABASE_NAME` | Check the environment-specific `.env`; prod uses `samugam`, non-prod uses its dedicated database. |
 | Compose reports an external network is missing | The database stack has not created `kalanjiyam-net` or the network name differs | Start the PostgreSQL stack and verify with `docker network inspect kalanjiyam-net`. |
 
 ## Reference Materials

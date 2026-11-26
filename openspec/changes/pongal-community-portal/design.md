@@ -103,9 +103,9 @@ Add registration prices, age-band labels, performance limits, and the approved 2
 
 Define the added tables in `src/db/schema/index.js` and generate numbered migrations under `drizzle/`. Apply the same migrations on PGlite and PostgreSQL at startup. Keep PGlite for automated tests; deploy both NAS app environments with `DB_DRIVER=postgres`, separate databases and roles, and the existing `DATABASE_*` settings through environment/secret files. Attach the app and PostgreSQL containers to the private `kalanjiyam-net` and publish no PostgreSQL port.
 
-Production uses `samugam` / `samugam_app`, created by the PostgreSQL stack's first-start `initdb/01-samugam.sh`. Non-production uses `samugam_nonprod` / `samugam_nonprod_app`, created once by hand with an equivalent script because init scripts do not rerun on an existing data folder; it includes the `citext` extension required by the first migration. Per-environment `.env` files hold `DATABASE_NAME`, `DATABASE_USER`, and `APP_BASE_URL`; `secrets/database_password` and `secrets/qr_pass_encryption_key` are owned by UID 1000 with mode 400. CI validates `compose.yaml` with placeholder values and the `secrets.example` files, including `database_password`.
+Prod uses `samugam` / `samugam_app`, created by the PostgreSQL stack's first-start `initdb/01-samugam.sh`. Non-prod uses `samugam_nonprod` / `samugam_nonprod_app`, created once by hand with an equivalent script because init scripts do not rerun on an existing data folder; it includes the `citext` extension required by the first migration. Per-environment `.env` files hold `DATABASE_NAME`, `DATABASE_USER`, and `APP_BASE_URL`; `secrets/database_password` and `secrets/qr_pass_encryption_key` are owned by UID 1000 with mode 400. CI validates `compose.yaml` with placeholder values and the `secrets.example` files, including `database_password`.
 
-- **Alternative: point non-production and production to the same database.** Rejected because test registrations could mix with production family and payment data.
+- **Alternative: point non-prod and prod to the same database.** Rejected because test registrations could mix with prod family and payment data.
 - **Alternative: replace PGlite in automated tests.** Rejected because the existing in-memory migration tests are fast and still verify portable SQL.
 - **Alternative: create tables manually in pgAdmin.** Rejected because migrations keep development, tests, and future deployments on the same schema version.
 
@@ -131,15 +131,15 @@ Keep one organizer dashboard with separate Registrations, Payments, Volunteers, 
 ## Migration Plan
 
 1. Add schema definitions and additive migrations; run them against in-memory PGlite tests.
-2. Deploy non-production against its separate `samugam_nonprod` PostgreSQL database and verify migrations, registration, and health before production.
-3. Configure production with the `samugam` database and `samugam_app` role; keep database credentials in the mounted secret file and publish no database port.
+2. Deploy non-prod against its separate `samugam_nonprod` PostgreSQL database and verify migrations, registration, and health before prod.
+3. Configure prod with the `samugam` database and `samugam_app` role; keep database credentials in the mounted secret file and publish no database port.
 4. Preserve existing PGlite data. Decide separately whether to import any survey history before retiring the old data volume.
-5. Configure SMTP and the Google client origin before enabling email verification and Google sign-in in production.
+5. Configure SMTP and the Google client origin before enabling email verification and Google sign-in in prod.
 6. Configure event date, venue, agenda, and final copy from organizer-approved values before public launch.
 7. To roll back application code, redeploy the previous image. Do not drop PostgreSQL tables or registration data; additive migrations remain in place.
 
 ## Open Questions
 
 - The organizer will provide the 2027 event date, venue, final schedule, and About-page copy before launch.
-- Google Cloud client: authorized JavaScript origin `https://<host>` and redirect URI `https://<host>/api/auth/google` are required per environment; non-prod is configured, production is pending.
+- Google Cloud client: authorized JavaScript origin `https://<host>` and redirect URI `https://<host>/api/auth/google` are required per environment; non-prod is configured, prod is pending.
 - Decide whether the existing PGlite survey history should be imported into PostgreSQL before removing its retained data volume.

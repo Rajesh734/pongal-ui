@@ -79,4 +79,4 @@
 - [x] 8.2 Configure both NAS app environments for PostgreSQL over `kalanjiyam-net`, with separate databases/roles and secret-file passwords; verify Compose publishes no PostgreSQL port and the app health check passes.
 - [x] 8.3 Configure Google authorized origins and SMTP in the deployment environment without exposing secrets; verify manual verification, Google sign-in, guest links, and pass delivery end to end.
 - [x] 8.4 Configure organizer-approved 2027 date, venue, agenda, About copy, and payment recipient; verify the public pages show the approved values.
-- [x] 8.5 Deploy to non-production and verify guest registration through organizer payment confirmation, QR delivery, registration CSV, volunteer report, and phone check-in; record the smoke-test result.
+- [x] 8.5 Deploy to non-prod and verify guest registration through organizer payment confirmation, QR delivery, registration CSV, volunteer report, and phone check-in; record the smoke-test result.

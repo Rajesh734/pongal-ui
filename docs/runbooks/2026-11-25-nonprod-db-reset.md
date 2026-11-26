@@ -1,4 +1,4 @@
-# Reset the non-production database
+# Reset the non-prod database
 
 Use this procedure only when you intentionally want a clean test database. It permanently deletes application data from `samugam_nonprod`; there is no undo unless you separately restore a backup. It does not create a backup.
 
@@ -6,7 +6,7 @@ The database schema and Drizzle migration history are retained. The app reapplie
 
 ## Reset
 
-Run these commands on the NAS. Stop the non-production app first so it cannot write while the database is being cleared:
+Run these commands on the NAS. Stop the non-prod app first so it cannot write while the database is being cleared:
 
 ```sh
 cd /volume1/platform/docker/non-prod/community-site
